@@ -34,23 +34,10 @@ def _get_dynamodb_client():
     return boto3.client("dynamodb")
 
 
-def _allowed_origin() -> str:
-    return os.environ.get("ALLOWED_ORIGIN", "https://manuel-anda.com")
-
-
-def _cors_headers() -> dict:
-    return {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": _allowed_origin(),
-        "Access-Control-Allow-Methods": "POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-    }
-
-
 def _response(status_code: int, body: dict) -> dict:
     return {
         "statusCode": status_code,
-        "headers": _cors_headers(),
+        "headers": {"Content-Type": "application/json"},
         "body": json.dumps(body),
     }
 
@@ -154,14 +141,6 @@ def lambda_handler(event: dict, context) -> dict:
         event.get("requestContext", {}).get("http", {}).get("method", "")
         or event.get("httpMethod", "")
     )
-
-    # Handle CORS preflight
-    if http_method == "OPTIONS":
-        return {
-            "statusCode": 204,
-            "headers": _cors_headers(),
-            "body": "",
-        }
 
     if http_method != "POST":
         return _error(405, "Method not allowed.")

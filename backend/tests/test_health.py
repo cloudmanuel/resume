@@ -52,11 +52,11 @@ def test_health_body_environment(lambda_context, monkeypatch):
     assert body["environment"] == "staging"
 
 
-def test_health_cors_header(lambda_context, monkeypatch):
-    monkeypatch.setenv("ALLOWED_ORIGIN", "https://manuel-anda.com")
+def test_health_no_cors_headers(lambda_context):
+    """CORS is handled by API Gateway — Lambda must NOT return Access-Control-* headers."""
     h = _load_handler()
     response = h.lambda_handler({}, lambda_context)
-    assert response["headers"]["Access-Control-Allow-Origin"] == "https://manuel-anda.com"
+    assert "Access-Control-Allow-Origin" not in response["headers"]
 
 
 def test_health_content_type(lambda_context):
