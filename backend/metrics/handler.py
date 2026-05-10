@@ -99,12 +99,20 @@ def _compute_p95_latency_ms(checks: list[dict]) -> int | None:
 
 
 def _get_monthly_cost_usd() -> float | None:
-    """Query AWS Cost Explorer for the current calendar month's unblended cost.
+    """Query AWS Cost Explorer for this project's current-month unblended cost.
 
-    Cost Explorer data lags by ~24 h, so we query up to yesterday. Returns None
-    on any error (missing permissions, first day of month, API hiccup) so the
-    caller can fall back gracefully without exposing internals.
+    Scoped to the 'Project' cost-allocation tag so only resources belonging to
+    this deployment are counted — not the entire AWS account.
+
+    Prerequisites (one-time AWS console setup):
+      Billing → Cost allocation tags → activate the 'Project' tag.
+    Without activation, CE ignores the filter and would return account-wide cost.
+
+    Cost Explorer data lags ~24 h, so we query up to yesterday. Returns None on
+    any error so the caller falls back gracefully without exposing internals.
     """
+    project_name = os.environ.get("PROJECT_NAME", "platform-resume")
+
     try:
         import boto3
         # Cost Explorer is a global service — endpoint is always us-east-1
@@ -120,6 +128,14 @@ def _get_monthly_cost_usd() -> float | None:
             TimePeriod={"Start": start, "End": end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost"],
+            # Filter to this project's tagged resources only.
+            # 'Project' must be activated as a cost-allocation tag in AWS Billing.
+            Filter={
+                "Tags": {
+                    "Key": "Project",
+                    "Values": [project_name],
+                }
+            },
         )
         results = response.get("ResultsByTime", [])
         if not results:
