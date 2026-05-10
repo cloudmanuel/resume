@@ -44,12 +44,13 @@ data "archive_file" "healthcheck_lambda" {
 # ROUTE 53
 # =============================================================================
 
-resource "aws_route53_zone" "main" {
-  name = var.domain_name
+data "aws_route53_zone" "main" {
+  name         = var.domain_name
+  private_zone = false
 }
 
 resource "aws_route53_record" "apex" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
 
@@ -61,7 +62,7 @@ resource "aws_route53_record" "apex" {
 }
 
 resource "aws_route53_record" "www" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "www.${var.domain_name}"
   type    = "A"
 
@@ -81,7 +82,7 @@ resource "aws_route53_record" "acm_validation" {
     }
   }
 
-  zone_id         = aws_route53_zone.main.zone_id
+  zone_id         = data.aws_route53_zone.main.zone_id
   name            = each.value.name
   type            = each.value.type
   records         = [each.value.record]
