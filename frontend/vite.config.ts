@@ -9,6 +9,7 @@ export default defineConfig(({ command }) => ({
   server: command === 'serve' ? {
     proxy: {
       '/api': {
+        // Set VITE_API_PROXY_TARGET in .env.local — never commit the raw execute-api URL.
         target: process.env.VITE_API_PROXY_TARGET ?? 'https://api.manuel-anda.com',
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/api/, ''),
