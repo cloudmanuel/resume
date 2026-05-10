@@ -459,7 +459,7 @@ function Nav({ active }: { active: string }) {
       <div className="wrap nav-inner">
         <a className="nav-brand" href="#home">
           <span className="dot" />
-          <span>manuelanda<span style={{ color: 'var(--ink-4)' }}>.com</span></span>
+          <span>manuel-anda<span style={{ color: 'var(--ink-4)' }}>.com</span></span>
         </a>
         <span className="nav-sec">/ {active}</span>
         <nav className="nav-links">
@@ -470,10 +470,10 @@ function Nav({ active }: { active: string }) {
         <span className="nav-clock"><ClockUTC /></span>
         <div className="nav-actions">
           <a className="nav-btn" href={REPO_URL} target="_blank" rel="noopener noreferrer" title="View source on GitHub">
-            {'{ }'} source
+            {'{ }'}<span className="nav-btn-label"> source</span>
           </a>
           <a className="nav-btn nav-btn-primary" href={PDF_URL} download title="Download resume PDF">
-            ↓ resume.pdf
+            ↓<span className="nav-btn-label"> resume.pdf</span>
           </a>
         </div>
       </div>
@@ -663,18 +663,9 @@ function About() {
             <p>
               I'm a <strong>Platform / Cloud Engineer</strong> who treats infrastructure
               the way product teams treat software — versioned, observable, and tested.
-              The things I build aren't features users see directly; they're the surface
-              area engineers ship from.
             </p>
             <p>
-              Most of my last four years have been spent on <strong>internal developer
-              platforms</strong>, <strong>observability pipelines</strong>, and{' '}
-              <strong>production-grade serverless systems</strong> on AWS. I write
-              Terraform for everything, automate deployments through GitHub Actions
-              with OIDC, and refuse to let secrets sit anywhere they shouldn't.
-            </p>
-            <p>
-              The site you're reading is itself a live cloud system — Lambda, DynamoDB,
+              The site you're reading is a live cloud system — Lambda, DynamoDB,
               CloudFront, all provisioned with Terraform and deployed end-to-end through
               CI. The status bar above is real.
             </p>
@@ -1270,13 +1261,14 @@ function Contact() {
 
 // ─────────────────────────── footer ───────────────────────────
 
-function Footer({ lastHash }: { lastHash: string }) {
+function Footer({ lastHash, metrics }: { lastHash: string; metrics: Metrics }) {
+  const uptime = metrics._demo ? '—' : `${metrics.uptime_30d.toFixed(2)}%`
   return (
     <footer className="wrap">
       <div className="foot">
-        <span>© 2026 manuel anda · last build {lastHash} · 99.98% / 30d</span>
+        <span>© 2026 manuel anda · last build {lastHash} · {uptime} uptime / 30d</span>
         <span>
-          <a href="#home">↑ top</a> · <a href="#contact">contact</a> · <a href={GITHUB_URL} target="_blank" rel="noreferrer">view source</a>
+          <a href="#home">↑ top</a> · <a href="#contact">contact</a> · <a href={REPO_URL} target="_blank" rel="noreferrer">view source</a>
         </span>
       </div>
     </footer>
@@ -1404,7 +1396,7 @@ export default function App() {
       <Experience />
       <Projects />
       <Contact />
-      <Footer lastHash={lastHash} />
+      <Footer lastHash={lastHash} metrics={metrics} />
       <CmdK open={cmd} onClose={() => setCmd(false)} />
     </>
   )
