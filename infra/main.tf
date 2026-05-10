@@ -216,6 +216,15 @@ resource "aws_cloudfront_response_headers_policy" "main" {
       protection = true
       override   = true
     }
+
+    content_security_policy {
+      # Allows: own origin, fonts from Google, API calls to api subdomain.
+      # default-src 'self' prevents loading from any other origin.
+      # style-src 'unsafe-inline' required for Vite-injected inline styles in dev;
+      # script-src 'self' locks JS to same-origin bundle only.
+      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.${var.domain_name}; frame-ancestors 'none';"
+      override                = true
+    }
   }
 }
 
@@ -299,7 +308,7 @@ resource "aws_dynamodb_table" "platform_resume_events" {
   }
 
   point_in_time_recovery {
-    enabled = false
+    enabled = true
   }
 
   server_side_encryption {

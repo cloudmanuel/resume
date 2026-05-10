@@ -67,9 +67,12 @@ jobs:
         shell: bash
         run: |
           echo "::add-mask::${{ vars.AWS_ACCOUNT_ID }}"
+          echo "::add-mask::${{ vars.AWS_ROLE_ARN }}"
           echo "::add-mask::${{ vars.FRONTEND_BUCKET_NAME }}"
           echo "::add-mask::${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}"
           echo "::add-mask::${{ vars.PROD_DOMAIN_NAME }}"
+          echo "::add-mask::${{ vars.DYNAMODB_TABLE_NAME }}"
+          echo "::add-mask::${{ vars.API_BASE_URL }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
