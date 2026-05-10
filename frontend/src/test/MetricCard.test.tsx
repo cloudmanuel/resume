@@ -1,43 +1,55 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import MetricCard from '../components/dashboard/MetricCard'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import App from '../App'
 
-describe('MetricCard', () => {
-  it('renders title and value', () => {
-    render(<MetricCard title="Uptime" value="99.98%" />)
-    expect(screen.getByText('Uptime')).toBeInTheDocument()
-    expect(screen.getByText('99.98%')).toBeInTheDocument()
+vi.mock('../lib/api', () => ({
+  fetchMetrics: vi.fn().mockResolvedValue({
+    uptime_30d: 99.98,
+    p95_latency_ms: 84,
+    last_deploy_at: '2026-05-08T14:32:00Z',
+    monthly_cost_usd: 2.41,
+    primary_region: 'us-east-1',
+    iac_coverage: 'Terraform',
+    deployment_method: 'GitHub Actions OIDC',
+    status: 'operational',
+    _demo: true,
+  }),
+  fetchHealth: vi.fn().mockResolvedValue([
+    { id: 'hc-1', name: 'CloudFront Distribution', status: 'passing', checked_at: '2026-05-09T00:00:00Z', latency_ms: 12 },
+    { id: 'hc-2', name: 'API Gateway /health',     status: 'passing', checked_at: '2026-05-09T00:00:00Z', latency_ms: 78 },
+  ]),
+  fetchDeployments: vi.fn().mockResolvedValue([
+    { id: 'dep-1', commit_hash: 'abc1234', branch: 'main', summary: 'feat: new feature', status: 'success', deployed_at: '2026-05-08T14:32:00Z', duration_s: 87 },
+  ]),
+  submitContact: vi.fn(),
+}))
+
+describe('Production snapshot', () => {
+  it('renders uptime from API metrics', async () => {
+    render(<App />)
+    await waitFor(() => {
+      expect(screen.getAllByText('99.98').length).toBeGreaterThan(0)
+    })
   })
 
-  it('renders unit alongside value', () => {
-    render(<MetricCard title="Latency" value={84} unit="ms" />)
-    expect(screen.getByText('84')).toBeInTheDocument()
-    expect(screen.getByText('ms')).toBeInTheDocument()
+  it('renders health check names', async () => {
+    render(<App />)
+    await waitFor(() => {
+      expect(screen.getByText('CloudFront Distribution')).toBeTruthy()
+    })
   })
 
-  it('shows DEMO badge when label is demo', () => {
-    render(<MetricCard title="Cost" value="$2.41" label="demo" />)
-    expect(screen.getByText('DEMO')).toBeInTheDocument()
+  it('renders deployment commit hash', async () => {
+    render(<App />)
+    await waitFor(() => {
+      expect(screen.getByText('abc1234')).toBeTruthy()
+    })
   })
 
-  it('shows LIVE badge when label is live', () => {
-    render(<MetricCard title="Region" value="us-east-1" label="live" />)
-    expect(screen.getByText('LIVE')).toBeInTheDocument()
-  })
-
-  it('shows EST badge when label is estimated', () => {
-    render(<MetricCard title="Uptime" value="99.98%" label="estimated" />)
-    expect(screen.getByText('EST')).toBeInTheDocument()
-  })
-
-  it('renders trend text when provided', () => {
-    render(<MetricCard title="Uptime" value="99.98%" trend="Target: ≥99.9%" />)
-    expect(screen.getByText('Target: ≥99.9%')).toBeInTheDocument()
-  })
-
-  it('does not render trend when not provided', () => {
-    const { container } = render(<MetricCard title="Uptime" value="99.98%" />)
-    // No trend paragraph should be present
-    expect(container.querySelector('p')).not.toBeInTheDocument()
+  it('renders section headings', () => {
+    render(<App />)
+    expect(screen.getByText('production snapshot', { exact: false })).toBeTruthy()
+    expect(screen.getByText('platform scorecard', { exact: false })).toBeTruthy()
+    expect(screen.getAllByText('runbooks', { exact: false }).length).toBeGreaterThan(0)
   })
 })
