@@ -124,12 +124,18 @@ def _get_monthly_cost_usd() -> float | None:
             # First day of the month — no data yet
             logger.info("First day of month, no Cost Explorer data available yet")
             return None
+        logger.info(
+            "Querying Cost Explorer: period=%s/%s project_tag=%s",
+            start, end, project_name,
+        )
         response = ce.get_cost_and_usage(
             TimePeriod={"Start": start, "End": end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost"],
             # Filter to this project's tagged resources only.
-            # 'Project' must be activated as a cost-allocation tag in AWS Billing.
+            # 'Project' must be activated as a cost-allocation tag in AWS Billing:
+            #   Billing → Cost allocation tags → find 'Project' → Activate
+            # Without activation CE ignores the filter and returns account-wide cost.
             Filter={
                 "Tags": {
                     "Key": "Project",
@@ -139,9 +145,17 @@ def _get_monthly_cost_usd() -> float | None:
         )
         results = response.get("ResultsByTime", [])
         if not results:
+            logger.warning("Cost Explorer returned no ResultsByTime")
             return None
         amount = results[0]["Total"]["UnblendedCost"]["Amount"]
-        return round(float(amount), 2)
+        cost = round(float(amount), 2)
+        logger.info(
+            "Cost Explorer result: $%s (filter: Project=%s). "
+            "If this looks like account-wide cost, activate the 'Project' tag "
+            "in AWS Billing → Cost allocation tags.",
+            cost, project_name,
+        )
+        return cost
     except Exception as exc:
         logger.warning("Failed to get monthly cost from Cost Explorer: %s", exc)
         return None
