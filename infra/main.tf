@@ -553,6 +553,7 @@ resource "aws_lambda_function" "metrics" {
   environment {
     variables = {
       EVENTS_TABLE_NAME = aws_dynamodb_table.platform_resume_events.name
+      PROJECT_NAME      = var.project_name
       ENVIRONMENT       = var.environment
     }
   }
