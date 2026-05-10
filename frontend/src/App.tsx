@@ -459,7 +459,7 @@ function Nav({ active }: { active: string }) {
       <div className="wrap nav-inner">
         <a className="nav-brand" href="#home">
           <span className="dot" />
-          <span>manuelanda<span style={{ color: 'var(--ink-4)' }}>.dev</span></span>
+          <span>manuelanda<span style={{ color: 'var(--ink-4)' }}>.com</span></span>
         </a>
         <span className="nav-sec">/ {active}</span>
         <nav className="nav-links">
