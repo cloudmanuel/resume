@@ -1,0 +1,94 @@
+name: Terraform Plan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    environment: planning
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mask known infrastructure values
+        shell: bash
+        run: |
+          echo "::add-mask::${{ vars.AWS_ACCOUNT_ID }}"
+          echo "::add-mask::${{ vars.TF_STATE_BUCKET }}"
+          echo "::add-mask::${{ vars.TF_LOCK_TABLE }}"
+          echo "::add-mask::${{ vars.PROD_DOMAIN_NAME }}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.8.x'
+
+      - name: Terraform init
+        working-directory: infra
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          cat > backend.hcl <<EOF
+          bucket         = "${{ vars.TF_STATE_BUCKET }}"
+          key            = "platform-resume/prod/terraform.tfstate"
+          region         = "${{ vars.AWS_REGION }}"
+          dynamodb_table = "${{ vars.TF_LOCK_TABLE }}"
+          encrypt        = true
+          EOF
+          terraform init -input=false -backend-config=backend.hcl
+          rm -f backend.hcl
+
+      - name: Terraform plan summary
+        working-directory: infra
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var="domain_name=${{ vars.PROD_DOMAIN_NAME }}" \
+            -var="github_org=${{ github.repository_owner }}" \
+            -var="github_repo=${{ github.event.repository.name }}" \
+            -out=tfplan
+
+          terraform show -json tfplan > tfplan.json
+
+          python3 <<'PY'
+          import json
+          with open("tfplan.json", "r", encoding="utf-8") as f:
+              plan = json.load(f)
+          counts = {"create": 0, "update": 0, "delete": 0, "replace": 0, "no_op": 0}
+          for rc in plan.get("resource_changes", []):
+              actions = rc.get("change", {}).get("actions", [])
+              if actions == ["create"]: counts["create"] += 1
+              elif actions == ["update"]: counts["update"] += 1
+              elif actions == ["delete"]: counts["delete"] += 1
+              elif set(actions) == {"delete", "create"}: counts["replace"] += 1
+              elif actions == ["no-op"]: counts["no_op"] += 1
+          print("=== Terraform Plan Summary ===")
+          print(f"Create:  {counts['create']}")
+          print(f"Update:  {counts['update']}")
+          print(f"Delete:  {counts['delete']}")
+          print(f"Replace: {counts['replace']}")
+          print(f"No-op:   {counts['no_op']}")
+          PY
+
+          rm -f tfplan tfplan.json
