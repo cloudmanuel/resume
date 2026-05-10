@@ -612,7 +612,6 @@ resource "aws_lambda_function" "healthcheck" {
     variables = {
       EVENTS_TABLE_NAME = aws_dynamodb_table.platform_resume_events.name
       SITE_URL          = "https://${var.domain_name}"
-      AWS_REGION        = var.aws_region
       ENVIRONMENT       = var.environment
     }
   }
