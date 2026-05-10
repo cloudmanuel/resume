@@ -65,8 +65,6 @@ jobs:
             -input=false \
             -no-color \
             -var="domain_name=${{ vars.PROD_DOMAIN_NAME }}" \
-            -var="github_org=${{ github.repository_owner }}" \
-            -var="github_repo=${{ github.event.repository.name }}" \
             -out=tfplan
 
           terraform show -json tfplan > tfplan.json

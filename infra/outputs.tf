@@ -48,11 +48,6 @@ output "acm_certificate_arn" {
   value       = aws_acm_certificate.main.arn
 }
 
-output "github_actions_role_arn" {
-  description = "ARN of the IAM role assumed by GitHub Actions for deployments."
-  value       = aws_iam_role.github_actions_deploy.arn
-}
-
 output "lambda_metrics_function_name" {
   description = "Name of the metrics Lambda function."
   value       = aws_lambda_function.metrics.function_name

@@ -21,16 +21,6 @@ variable "environment" {
   default     = "prod"
 }
 
-variable "github_org" {
-  description = "GitHub organization or username owning the repository (used for OIDC trust policy)."
-  type        = string
-}
-
-variable "github_repo" {
-  description = "GitHub repository name (used for OIDC trust policy)."
-  type        = string
-}
-
 variable "enable_waf" {
   description = "Whether to attach an AWS WAF WebACL to the CloudFront distribution. Incurs additional cost."
   type        = bool
