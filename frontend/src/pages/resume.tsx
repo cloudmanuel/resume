@@ -10,48 +10,6 @@ interface ExperienceItem {
 }
 
 const experience: ExperienceItem[] = [
-  {
-    role: 'Senior Platform Engineer',
-    company: 'Meridian Health Technologies',
-    period: 'Jan 2023 – Present',
-    location: 'Remote (Austin, TX)',
-    bullets: [
-      'Designed and deployed a self-service Internal Developer Platform on AWS using Coder, cutting developer onboarding time from 3–5 days to under 2 hours for a 40-person engineering organization.',
-      'Built a centralized OpenTelemetry observability pipeline on ECS Fargate routing traces, metrics, and logs from 40+ microservices to Datadog, reducing MTTR from 90+ minutes to under 15 minutes.',
-      'Migrated all infrastructure to Terraform with modular, reusable patterns; established IaC standards adopted across 5 product teams. Enforced via automated plan/apply in GitHub Actions with Atlantis.',
-      'Led AWS security hardening initiative: implemented IAM least-privilege policies, moved all CI/CD to OIDC (no stored access keys), enabled GuardDuty and Security Hub, achieved SOC 2 Type II readiness.',
-      'Reduced AWS monthly spend by 34% through Reserved Instance purchases, rightsizing, Spot adoption for non-critical workloads, and elimination of idle NAT Gateways.',
-      'Mentored 3 junior engineers on platform engineering principles, IaC patterns, and AWS fundamentals. Ran biweekly platform guild meetings to share knowledge across the org.',
-    ],
-  },
-  {
-    role: 'Cloud Infrastructure Engineer',
-    company: 'Cascade Systems Group',
-    period: 'Jun 2021 – Dec 2022',
-    location: 'Hybrid (Seattle, WA)',
-    bullets: [
-      'Architected and delivered a Temporal workflow automation platform on ECS Fargate, replacing 15+ brittle Lambda-chain scripts with durable, observable, and retryable workflows.',
-      'Built a serverless data ingestion pipeline processing 8M+ events/day: Kinesis Data Streams → Lambda → S3 → Athena, with automated Glue catalog updates. Reduced data latency from 6 hours to under 5 minutes.',
-      'Managed multi-account AWS organization (6 accounts) with AWS Organizations, SCPs, and Control Tower. Enforced security baselines and cost allocation tags via automated account vending.',
-      'Designed and operated RDS Aurora PostgreSQL clusters with read replicas, automated backups, and point-in-time restore tested quarterly. Achieved 99.95% database uptime.',
-      'Implemented container security scanning with Trivy in CI, blocking deployments on critical CVEs. Reduced critical vulnerability backlog from 80+ to 0 within 90 days.',
-      'Wrote and maintained 60+ Terraform modules for reuse across teams; reduced time to provision new AWS environments from 3 weeks to 2 days.',
-    ],
-  },
-  {
-    role: 'DevOps Engineer',
-    company: 'Polaris Digital Solutions',
-    period: 'Aug 2019 – May 2021',
-    location: 'On-site (Denver, CO)',
-    bullets: [
-      'Built and maintained CI/CD pipelines for 12 applications using Jenkins and then GitHub Actions, reducing deployment frequency from weekly to daily with automated rollback on failure.',
-      'Migrated 8 monolithic applications from EC2 to ECS (Fargate), reducing infrastructure operational overhead and enabling per-service scaling. Eliminated ~$4,000/month in idle compute.',
-      'Implemented centralized secrets management using AWS Secrets Manager with automatic rotation for RDS credentials, eliminating hardcoded secrets from all codebases.',
-      'Set up monitoring and alerting with CloudWatch and PagerDuty: defined SLIs/SLOs for critical services, built dashboards for engineering and operations teams.',
-      'Supported Kubernetes (EKS) adoption: stood up first EKS cluster, wrote Helm charts for 4 applications, documented deployment patterns adopted by the rest of the team.',
-      'On-call rotation (1 week in 4), maintained runbooks for 20+ operational scenarios, reduced alert noise by 60% through better alarm thresholds and alert grouping.',
-    ],
-  },
 ]
 
 interface SkillGroup {
@@ -74,7 +32,7 @@ const skills: SkillGroup[] = [
   },
   {
     label: 'Languages',
-    items: ['Python (primary)', 'TypeScript / React', 'Bash', 'Go (working knowledge)'],
+    items: ['Python (primary)', 'Bash'],
   },
   {
     label: 'Security & Compliance',
@@ -173,7 +131,7 @@ export default function ResumePage() {
             Summary
           </h3>
           <p className="text-slate-300 leading-relaxed text-sm">
-            Platform / Cloud Engineer with 7+ years of experience designing, building, and
+            Platform / Cloud Engineer with 4+ years of experience designing, building, and
             operating cloud infrastructure on AWS. Specialize in developer experience platforms
             (Coder, IDP tooling), observability pipelines (OpenTelemetry, Datadog), and
             production-grade serverless architectures. Strong infrastructure-as-code discipline

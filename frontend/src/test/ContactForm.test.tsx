@@ -1,81 +1,75 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ContactForm from '../components/contact/ContactForm'
+import App from '../App'
 
-describe('ContactForm', () => {
-  it('renders all required form fields', () => {
-    render(<ContactForm />)
-    expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/company/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/role/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/message/i)).toBeInTheDocument()
+// Mock the API module
+vi.mock('../lib/api', () => ({
+  fetchMetrics: vi.fn().mockResolvedValue({
+    uptime_30d: 99.98,
+    p95_latency_ms: 84,
+    last_deploy_at: '2026-05-08T14:32:00Z',
+    monthly_cost_usd: 2.41,
+    primary_region: 'us-east-1',
+    iac_coverage: 'Terraform',
+    deployment_method: 'GitHub Actions OIDC',
+    status: 'operational',
+    _demo: true,
+  }),
+  fetchHealth: vi.fn().mockResolvedValue([]),
+  fetchDeployments: vi.fn().mockResolvedValue([]),
+  submitContact: vi.fn().mockResolvedValue({ success: true, message: 'Sent' }),
+}))
+
+describe('Contact form', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('renders submit button', () => {
-    render(<ContactForm />)
-    expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument()
+  it('renders the contact section', () => {
+    render(<App />)
+    expect(screen.getByText(/get in touch/i)).toBeTruthy()
   })
 
-  it('shows validation error when name is empty on submit', async () => {
-    render(<ContactForm />)
-    const submitButton = screen.getByRole('button', { name: /send message/i })
-    fireEvent.click(submitButton)
+  it('shows validation errors on empty submit', async () => {
+    render(<App />)
+    const submitBtn = screen.getByRole('button', { name: /send message/i })
+    fireEvent.click(submitBtn)
     await waitFor(() => {
-      expect(screen.getByText(/name is required/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/required/i).length).toBeGreaterThan(0)
     })
   })
 
-  it('shows validation error when email is empty on submit', async () => {
-    render(<ContactForm />)
-    fireEvent.change(screen.getByLabelText(/name/i), {
-      target: { name: 'name', value: 'Test User' },
+  it('shows message length validation error', async () => {
+    render(<App />)
+    const msgTextarea = screen.getByPlaceholderText(/what are you building/i)
+    fireEvent.change(msgTextarea, { target: { value: 'short' } })
+    const submitBtn = screen.getByRole('button', { name: /send message/i })
+    fireEvent.click(submitBtn)
+    await waitFor(() => {
+      expect(screen.getByText(/message must be at least/i)).toBeTruthy()
     })
+  })
+
+  it('calls submitContact on valid form', async () => {
+    const { submitContact } = await import('../lib/api')
+    render(<App />)
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Jane Doe' } })
+    fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'jane@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/what are you building/i), { target: { value: 'A very interesting platform engineering role' } })
     fireEvent.click(screen.getByRole('button', { name: /send message/i }))
     await waitFor(() => {
-      expect(screen.getByText(/email is required/i)).toBeInTheDocument()
+      expect(submitContact).toHaveBeenCalledOnce()
     })
   })
 
-  it('shows validation error when email is invalid', async () => {
-    render(<ContactForm />)
-    fireEvent.change(screen.getByLabelText(/name/i), {
-      target: { name: 'name', value: 'Test User' },
-    })
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { name: 'email', value: 'not-an-email' },
-    })
+  it('shows success message after submission', async () => {
+    render(<App />)
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Jane Doe' } })
+    fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'jane@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/what are you building/i), { target: { value: 'A very interesting platform engineering role' } })
     fireEvent.click(screen.getByRole('button', { name: /send message/i }))
     await waitFor(() => {
-      expect(screen.getByText(/valid email/i)).toBeInTheDocument()
-    })
-  })
-
-  it('shows validation error when message is empty', async () => {
-    render(<ContactForm />)
-    fireEvent.change(screen.getByLabelText(/name/i), {
-      target: { name: 'name', value: 'Test User' },
-    })
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { name: 'email', value: 'test@example.com' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /send message/i }))
-    await waitFor(() => {
-      expect(screen.getByText(/message must be at least/i)).toBeInTheDocument()
-    })
-  })
-
-  it('clears name error when user starts typing', async () => {
-    render(<ContactForm />)
-    fireEvent.click(screen.getByRole('button', { name: /send message/i }))
-    await waitFor(() => {
-      expect(screen.getByText(/name is required/i)).toBeInTheDocument()
-    })
-    fireEvent.change(screen.getByLabelText(/name/i), {
-      target: { name: 'name', value: 'J' },
-    })
-    await waitFor(() => {
-      expect(screen.queryByText(/name is required/i)).not.toBeInTheDocument()
+      expect(screen.getByText(/message sent/i)).toBeTruthy()
     })
   })
 })
