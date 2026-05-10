@@ -36,6 +36,8 @@ node_modules/
 frontend/dist/
 frontend/build/
 frontend/.vite/
+# Vite dev-server timestamp temp files
+vite.config.ts.timestamp-*.mjs
 
 # Secrets / keys
 *.pem
