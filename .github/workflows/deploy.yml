@@ -115,20 +115,27 @@ jobs:
           set +x
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           COMMIT_SHORT="${GITHUB_SHA::8}"
+          COMMIT_MSG=$(git log -1 --pretty="%s" | head -c 200)
+          RECORD_ID=$(cat /proc/sys/kernel/random/uuid)
+          # TTL: 90 days from now
+          TTL=$(( $(date -u +%s) + 90 * 24 * 3600 ))
           aws dynamodb put-item \
             --table-name ${{ vars.DYNAMODB_TABLE_NAME }} \
             --item "{
               \"entity_type\": {\"S\": \"DEPLOYMENT\"},
               \"timestamp_id\": {\"S\": \"${TIMESTAMP}#${{ github.run_id }}\"},
+              \"record_id\": {\"S\": \"${RECORD_ID}\"},
               \"status\": {\"S\": \"success\"},
               \"commit_sha\": {\"S\": \"${COMMIT_SHORT}\"},
               \"branch\": {\"S\": \"main\"},
               \"actor\": {\"S\": \"github-actions\"},
-              \"summary\": {\"S\": \"Frontend deployed and CloudFront invalidated\"},
-              \"run_id\": {\"S\": \"${{ github.run_id }}\"}
+              \"summary\": {\"S\": \"${COMMIT_MSG}\"},
+              \"created_at\": {\"S\": \"${TIMESTAMP}\"},
+              \"run_id\": {\"S\": \"${{ github.run_id }}\"},
+              \"ttl\": {\"N\": \"${TTL}\"}
             }" \
             --no-cli-pager
-          echo "Deployment event recorded successfully."
+          echo "Deployment event recorded: ${COMMIT_SHORT} — ${COMMIT_MSG}"
 
       - name: Deployment summary
         run: |

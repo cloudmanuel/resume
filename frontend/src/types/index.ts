@@ -1,7 +1,7 @@
 export interface Metrics {
   uptime_30d: number
   p95_latency_ms: number
-  last_deploy_at: string
+  last_deploy_at: string  // empty string when no deployment recorded yet
   monthly_cost_usd: number
   primary_region: string
   iac_coverage: string
