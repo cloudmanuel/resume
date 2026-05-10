@@ -522,9 +522,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* ─────────────── ≤ 480px (standard phone) ─────────────── */
 @media (max-width: 480px) {
 
-  /* Nav: hide secondary label + source button to prevent overflow */
+  /* Nav: hide secondary breadcrumb — both action buttons remain visible */
   .nav-sec { display: none; }
-  .nav-btn:not(.nav-btn-primary) { display: none; }
   .nav-actions { margin-left: auto; }
 
   /* Terminal: reduce min-height, hide inactive tabs */
@@ -583,6 +582,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .cs-decisions li { grid-template-columns: 26px 1fr; gap: 8px; padding: 10px; }
   .cs-timeline li { grid-template-columns: 60px 1fr; font-size: 11.5px; }
   .cs-impact { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─────────────── ≤ 400px — nav buttons: icon only, drop text label ─────────────── */
+@media (max-width: 400px) {
+  .nav-btn-label { display: none; }
 }
 
 /* ─────────────── ≤ 360px (small phone / Galaxy S) ─────────────── */
