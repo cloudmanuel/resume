@@ -529,8 +529,7 @@ resource "aws_lambda_function" "health" {
 
   environment {
     variables = {
-      ALLOWED_ORIGIN = "https://${var.domain_name}"
-      ENVIRONMENT    = var.environment
+      ENVIRONMENT = var.environment
     }
   }
 
@@ -554,7 +553,6 @@ resource "aws_lambda_function" "metrics" {
   environment {
     variables = {
       EVENTS_TABLE_NAME = aws_dynamodb_table.platform_resume_events.name
-      ALLOWED_ORIGIN    = "https://${var.domain_name}"
       ENVIRONMENT       = var.environment
     }
   }
@@ -579,7 +577,6 @@ resource "aws_lambda_function" "contact" {
   environment {
     variables = {
       EVENTS_TABLE_NAME = aws_dynamodb_table.platform_resume_events.name
-      ALLOWED_ORIGIN    = "https://${var.domain_name}"
       ENVIRONMENT       = var.environment
     }
   }
@@ -604,7 +601,6 @@ resource "aws_lambda_function" "deployments" {
   environment {
     variables = {
       EVENTS_TABLE_NAME = aws_dynamodb_table.platform_resume_events.name
-      ALLOWED_ORIGIN    = "https://${var.domain_name}"
       ENVIRONMENT       = var.environment
     }
   }
@@ -649,10 +645,13 @@ resource "aws_apigatewayv2_api" "main" {
   protocol_type = "HTTP"
   description   = "Platform Resume Control Plane API"
 
+  # CORS is owned entirely by API Gateway. Lambda handlers return only business
+  # logic — no Access-Control-* headers. This prevents duplicate ACAO headers
+  # (one from API GW + one from Lambda) which browsers reject.
   cors_configuration {
     allow_origins = ["https://${var.domain_name}", "https://www.${var.domain_name}"]
     allow_methods = ["GET", "POST", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization"]
+    allow_headers = ["Content-Type"]
     max_age       = 86400
   }
 }
@@ -737,11 +736,8 @@ resource "aws_apigatewayv2_route" "post_contact" {
   target    = "integrations/${aws_apigatewayv2_integration.contact.id}"
 }
 
-resource "aws_apigatewayv2_route" "options_proxy" {
-  api_id    = aws_apigatewayv2_api.main.id
-  route_key = "OPTIONS /{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.health.id}"
-}
+# OPTIONS /{proxy+} route removed — cors_configuration on the API handles all
+# preflight requests at the gateway layer before they reach any Lambda.
 
 # --- Lambda permissions for API Gateway ---
 
@@ -928,5 +924,83 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_5xx_rate" {
   dimensions = {
     DistributionId = aws_cloudfront_distribution.main.id
     Region         = "Global"
+  }
+}
+
+# =============================================================================
+# API GATEWAY CUSTOM DOMAIN — api.manuel-anda.com
+# =============================================================================
+# Without this block the API only answers on the raw execute-api URL.
+# The frontend hardcodes https://api.manuel-anda.com so we need:
+#   1. ACM cert for the subdomain (regional — same region as API GW)
+#   2. Route 53 DNS validation for that cert
+#   3. apigatewayv2_domain_name resource
+#   4. apigatewayv2_api_mapping to attach the $default stage
+#   5. Route 53 A alias pointing the subdomain at the API GW endpoint
+
+# 1. Regional ACM cert for api.<domain>
+#    Uses the default provider (us-east-1) — same region as API Gateway.
+resource "aws_acm_certificate" "api" {
+  domain_name       = "api.${var.domain_name}"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# 2. Route 53 DNS validation record for the API cert
+resource "aws_route53_record" "api_acm_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.api.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = each.value.name
+  type            = each.value.type
+  records         = [each.value.record]
+  ttl             = 60
+  allow_overwrite = true
+}
+
+resource "aws_acm_certificate_validation" "api" {
+  certificate_arn         = aws_acm_certificate.api.arn
+  validation_record_fqdns = [for record in aws_route53_record.api_acm_validation : record.fqdn]
+}
+
+# 3. API Gateway custom domain name
+resource "aws_apigatewayv2_domain_name" "api" {
+  domain_name = "api.${var.domain_name}"
+
+  domain_name_configuration {
+    certificate_arn = aws_acm_certificate_validation.api.certificate_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+
+  depends_on = [aws_acm_certificate_validation.api]
+}
+
+# 4. Map the $default stage to the custom domain (no base path = root of domain)
+resource "aws_apigatewayv2_api_mapping" "api" {
+  api_id      = aws_apigatewayv2_api.main.id
+  domain_name = aws_apigatewayv2_domain_name.api.id
+  stage       = aws_apigatewayv2_stage.default.id
+}
+
+# 5. Route 53 A alias — api.<domain> → API Gateway regional endpoint
+resource "aws_route53_record" "api" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "api.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.api.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.api.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
   }
 }
