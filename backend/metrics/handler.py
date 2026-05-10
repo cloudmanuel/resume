@@ -7,10 +7,11 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Static fallback estimates (labeled as such)
 FALLBACK_METRICS = {
     "uptime_percentage": 99.9,
     "uptime_is_estimated": True,
+    "p95_latency_ms": None,
+    "monthly_cost_usd": None,
     "deployments_count": 0,
     "last_deployment": None,
     "last_deployment_status": None,
@@ -51,8 +52,9 @@ def _query_last_deployment(client, table_name: str) -> dict | None:
         return None
 
 
-def _query_synthetic_checks(client, table_name: str, limit: int = 10) -> list[dict]:
-    """Query the most recent SYNTHETIC_CHECK records."""
+def _query_synthetic_checks(client, table_name: str, limit: int = 100) -> list[dict]:
+    """Query the most recent SYNTHETIC_CHECK records. Uses a higher limit so
+    p95 is computed over a meaningful sample (≥20 checks = ~10 healthcheck runs)."""
     try:
         response = client.query(
             TableName=table_name,
@@ -80,9 +82,53 @@ def _query_synthetic_checks(client, table_name: str, limit: int = 10) -> list[di
 def _compute_uptime(checks: list[dict]) -> float:
     """Compute uptime percentage from check results."""
     if not checks:
-        return 99.9  # fallback estimate
+        return 99.9
     successful = sum(1 for c in checks if c.get("status") == "success")
     return round((successful / len(checks)) * 100, 2)
+
+
+def _compute_p95_latency_ms(checks: list[dict]) -> int | None:
+    """Compute the p95 latency from check results.
+    Returns None when the sample is too small to be meaningful (< 5 checks)."""
+    latencies = [c["latency_ms"] for c in checks if c.get("latency_ms") is not None]
+    if len(latencies) < 5:
+        return None
+    latencies.sort()
+    idx = max(0, int(len(latencies) * 0.95) - 1)
+    return latencies[idx]
+
+
+def _get_monthly_cost_usd() -> float | None:
+    """Query AWS Cost Explorer for the current calendar month's unblended cost.
+
+    Cost Explorer data lags by ~24 h, so we query up to yesterday. Returns None
+    on any error (missing permissions, first day of month, API hiccup) so the
+    caller can fall back gracefully without exposing internals.
+    """
+    try:
+        import boto3
+        # Cost Explorer is a global service — endpoint is always us-east-1
+        ce = boto3.client("ce", region_name="us-east-1")
+        now = datetime.now(timezone.utc)
+        start = now.strftime("%Y-%m-01")
+        end = now.strftime("%Y-%m-%d")
+        if start == end:
+            # First day of the month — no data yet
+            logger.info("First day of month, no Cost Explorer data available yet")
+            return None
+        response = ce.get_cost_and_usage(
+            TimePeriod={"Start": start, "End": end},
+            Granularity="MONTHLY",
+            Metrics=["UnblendedCost"],
+        )
+        results = response.get("ResultsByTime", [])
+        if not results:
+            return None
+        amount = results[0]["Total"]["UnblendedCost"]["Amount"]
+        return round(float(amount), 2)
+    except Exception as exc:
+        logger.warning("Failed to get monthly cost from Cost Explorer: %s", exc)
+        return None
 
 
 def _build_response(status_code: int, body: dict, allowed_origin: str) -> dict:
@@ -102,29 +148,37 @@ def lambda_handler(event: dict, context) -> dict:
     allowed_origin = os.environ.get("ALLOWED_ORIGIN", "https://manuel-anda.com")
     table_name = os.environ.get("EVENTS_TABLE_NAME", "")
 
-    # Handle OPTIONS preflight
     if event.get("requestContext", {}).get("http", {}).get("method") == "OPTIONS":
         return _build_response(204, {}, allowed_origin)
 
     if not table_name:
         logger.warning("EVENTS_TABLE_NAME not set — returning estimated metrics")
-        return _build_response(200, FALLBACK_METRICS, allowed_origin)
+        return _build_response(200, {
+            **FALLBACK_METRICS,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }, allowed_origin)
 
     try:
         client = _get_dynamodb_client()
         last_deployment = _query_last_deployment(client, table_name)
-        checks = _query_synthetic_checks(client, table_name, limit=10)
+        checks = _query_synthetic_checks(client, table_name, limit=100)
         uptime = _compute_uptime(checks)
+        p95 = _compute_p95_latency_ms(checks)
         is_estimated = len(checks) == 0
+
+        monthly_cost = _get_monthly_cost_usd()
 
         metrics = {
             "uptime_percentage": uptime,
             "uptime_is_estimated": is_estimated,
+            "p95_latency_ms": p95,
+            "monthly_cost_usd": monthly_cost,
             "deployments_count": 1 if last_deployment else 0,
             "last_deployment": last_deployment,
             "last_deployment_status": last_deployment.get("status") if last_deployment else None,
             "checks_performed": len(checks),
-            "recent_checks": checks[:5],  # only return last 5 publicly
+            # Return only the 5 most recent checks publicly (for the health panel)
+            "recent_checks": checks[:5],
             "data_source": "live" if not is_estimated else "estimated",
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -132,5 +186,7 @@ def lambda_handler(event: dict, context) -> dict:
 
     except Exception as exc:
         logger.error("Unhandled error in metrics handler: %s", exc)
-        # Never expose internal details — return estimated values
-        return _build_response(200, {**FALLBACK_METRICS, "generated_at": datetime.now(timezone.utc).isoformat()}, allowed_origin)
+        return _build_response(200, {
+            **FALLBACK_METRICS,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }, allowed_origin)

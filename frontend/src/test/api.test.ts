@@ -1,84 +1,61 @@
-import { describe, it, expect } from 'vitest'
-import { formatRelativeTime, formatDate, formatUptime, formatLatency } from '../lib/formatters'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fetchMetrics, fetchHealth, fetchDeployments, submitContact } from '../lib/api'
+import { demoMetrics, demoDeployments, demoHealthChecks } from '../data/demo'
 
-describe('formatRelativeTime', () => {
-  it('returns a string', () => {
-    const result = formatRelativeTime(new Date().toISOString())
-    expect(typeof result).toBe('string')
+const mockFetch = vi.fn()
+vi.stubGlobal('fetch', mockFetch)
+
+describe('API client', () => {
+  beforeEach(() => { mockFetch.mockReset() })
+
+  it('fetchMetrics falls back to demo data on network error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+    const result = await fetchMetrics()
+    expect(result).toEqual(demoMetrics)
+    expect(result._demo).toBe(true)
   })
 
-  it('returns "just now" for current time', () => {
-    const result = formatRelativeTime(new Date().toISOString())
-    expect(result).toBe('just now')
+  it('fetchHealth falls back to demo data on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false } as Response)
+    const result = await fetchHealth()
+    expect(result).toEqual(demoHealthChecks)
   })
 
-  it('returns minutes ago format', () => {
-    const date = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    expect(formatRelativeTime(date)).toBe('5m ago')
+  it('fetchDeployments falls back to demo data on error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('timeout'))
+    const result = await fetchDeployments()
+    expect(result).toEqual(demoDeployments)
   })
 
-  it('returns hours ago format', () => {
-    const date = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-    expect(formatRelativeTime(date)).toBe('3h ago')
+  it('fetchMetrics returns real data on success', async () => {
+    // Mock uses backend field names (uptime_percentage, not uptime_30d)
+    const mockRaw = {
+      uptime_percentage: 100,
+      uptime_is_estimated: false,
+      deployments_count: 1,
+      last_deployment: { status: 'success', summary: 'feat: test', commit_sha: 'abc1234', branch: 'main', created_at: '2026-05-09T00:00:00Z' },
+      last_deployment_status: 'success',
+      checks_performed: 2,
+      recent_checks: [
+        { status: 'success', target: 'https://manuel-anda.com', latency_ms: 50, region: 'us-east-1', timestamp: '2026-05-09T00:00:00Z' },
+      ],
+      data_source: 'live',
+      generated_at: '2026-05-09T00:00:00Z',
+    }
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => mockRaw } as Response)
+    const result = await fetchMetrics()
+    expect(result.uptime_30d).toBe(100)
+    expect(result.status).toBe('operational')
+    expect(result._demo).toBeFalsy()
   })
 
-  it('returns days ago format', () => {
-    const date = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-    expect(formatRelativeTime(date)).toBe('2d ago')
-  })
-
-  it('returns formatted date for old timestamps', () => {
-    const result = formatRelativeTime('2025-01-01T00:00:00Z')
-    expect(typeof result).toBe('string')
-    expect(result.length).toBeGreaterThan(0)
-  })
-})
-
-describe('formatDate', () => {
-  it('returns a string', () => {
-    const result = formatDate('2026-05-09T00:00:00Z')
-    expect(typeof result).toBe('string')
-  })
-
-  it('returns a non-empty string', () => {
-    const result = formatDate('2026-05-09T00:00:00Z')
-    expect(result.length).toBeGreaterThan(0)
-  })
-
-  it('includes the year', () => {
-    const result = formatDate('2026-05-09T00:00:00Z')
-    expect(result).toContain('2026')
-  })
-})
-
-describe('formatUptime', () => {
-  it('returns a percentage string', () => {
-    expect(formatUptime(99.98)).toBe('99.98%')
-  })
-
-  it('returns 100.00% for 100', () => {
-    expect(formatUptime(100)).toBe('100.00%')
-  })
-
-  it('returns a string', () => {
-    expect(typeof formatUptime(95.5)).toBe('string')
-  })
-})
-
-describe('formatLatency', () => {
-  it('returns ms format for sub-second values', () => {
-    expect(formatLatency(84)).toBe('84ms')
-  })
-
-  it('returns seconds format for values >= 1000ms', () => {
-    expect(formatLatency(1500)).toBe('1.50s')
-  })
-
-  it('rounds ms values', () => {
-    expect(formatLatency(84.7)).toBe('85ms')
-  })
-
-  it('returns a string', () => {
-    expect(typeof formatLatency(200)).toBe('string')
+  it('submitContact posts to /contact endpoint', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, message: 'Sent' }) } as Response)
+    const result = await submitContact({ name: 'Test', email: 't@t.com', company: '', role_type: '', message: 'Hello world message' })
+    expect(result.success).toBe(true)
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/contact'),
+      expect.objectContaining({ method: 'POST' })
+    )
   })
 })

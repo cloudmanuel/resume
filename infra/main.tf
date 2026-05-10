@@ -366,6 +366,24 @@ resource "aws_iam_role_policy" "lambda_metrics_dynamodb" {
   })
 }
 
+# Cost Explorer is a global service — IAM does not support resource-level scoping for ce:*.
+# Least-privilege: read-only cost data, no budget or anomaly write actions.
+resource "aws_iam_role_policy" "lambda_metrics_cost_explorer" {
+  name = "cost-explorer-read"
+  role = aws_iam_role.lambda_metrics.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "CostExplorerReadOnly"
+        Effect   = "Allow"
+        Action   = ["ce:GetCostAndUsage"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # --- Contact Lambda Role ---
 
 resource "aws_iam_role" "lambda_contact" {
