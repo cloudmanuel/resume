@@ -23,7 +23,7 @@ const NOW = [
   { t: 'now',     b: 'Building a Coder-based IDP for a 40-person eng org.' },
   { t: 'writing', b: 'Notes on OTel pipelines + cost-aware tracing.' },
   { t: 'reading', b: '"Designing Data-Intensive Applications", Kleppmann.' },
-  { t: 'open to', b: 'Staff / Principal Platform, SRE Lead, Cloud Architect.' },
+  { t: 'open to', b: 'Cloud / Platform Roles, Cloud Architect.' },
 ]
 
 const IMPACT = [
@@ -307,13 +307,13 @@ const TERM_LINES = [
   { kind: 'out', parts: [{ t: 'plain', v: 'I build the ' }, { t: 'k', v: 'infrastructure & developer tooling' }, { t: 'plain', v: ' product\nteams depend on: IDPs, observability, secure CI/CD, serverless.' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'ls --tree skills/' },
-  { kind: 'out', parts: [{ t: 'dim', v: 'skills/\n├─ aws/  ' }, { t: 'ok', v: '[saa-pro]' }, { t: 'dim', v: ' ' }, { t: 'ok', v: '[dop-pro]' }, { t: 'dim', v: '\n├─ iac/  terraform · cdk · github-actions\n├─ obs/  datadog · opentelemetry · temporal\n└─ lang/ python · typescript · go' }] },
+  { kind: 'out', parts: [{ t: 'dim', v: 'skills/\n├─ aws/  ' }, { t: 'ok', v: '[saa-pro]' }, { t: 'dim', v: ' ' }, { t: 'dim', v: '\n├─ iac/  terraform · cdk · github-actions\n├─ obs/  datadog · opentelemetry · temporal\n└─ lang/ python · bash' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'deploy --status' },
   { kind: 'out', parts: [{ t: 'ok', v: '●' }, { t: 'plain', v: ' resume-control-plane · us-east-1 · uptime 99.98% · p95 84ms' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'say hi' },
-  { kind: 'out', parts: [{ t: 'plain', v: 'open to ' }, { t: 'k', v: 'staff / principal platform' }, { t: 'plain', v: ' roles → ' + CANDIDATE_EMAIL }] },
+  { kind: 'out', parts: [{ t: 'plain', v: 'open to ' }, { t: 'k', v: 'cloud / platform engineering' }, { t: 'plain', v: ' roles → ' + CANDIDATE_EMAIL }] },
 ]
 
 // ─────────────────────────── helpers ───────────────────────────
@@ -459,7 +459,7 @@ function Nav({ active }: { active: string }) {
       <div className="wrap nav-inner">
         <a className="nav-brand" href="#home">
           <span className="dot" />
-          <span>manuelanda<span style={{ color: 'var(--ink-4)' }}>.dev</span></span>
+          <span>manuelanda<span style={{ color: 'var(--ink-4)' }}>.com</span></span>
         </a>
         <span className="nav-sec">/ {active}</span>
         <nav className="nav-links">
@@ -1197,7 +1197,7 @@ function Contact() {
                 Got a platform that <em>shouldn't be this hard</em> to deploy?
               </div>
               <p className="contact-sub">
-                I'm open to Staff / Principal Platform Engineer, Cloud Architect, and SRE Lead roles.
+                I'm open to Cloud / Platform Engineering, Cloud Architect, and SRE Lead roles.
                 Happy to do contract & advisory work too. I usually reply within a day.
               </p>
               <div className="contact-links" style={{ marginTop: 18 }}>
