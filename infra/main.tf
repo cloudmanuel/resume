@@ -944,7 +944,13 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"]
+      values = [
+        # Branch-triggered jobs (validate, plan on push to main)
+        "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+        # Environment-scoped jobs — sub changes format when `environment:` is set in the workflow job
+        "repo:${var.github_org}/${var.github_repo}:environment:production",
+        "repo:${var.github_org}/${var.github_repo}:environment:planning",
+      ]
     }
   }
 }
