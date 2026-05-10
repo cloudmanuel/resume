@@ -138,6 +138,38 @@ def test_metrics_no_cors_headers(lambda_context, monkeypatch):
     assert "Access-Control-Allow-Origin" not in response["headers"]
 
 
+def test_cost_explorer_filters_by_project_tag(lambda_context, monkeypatch):
+    """CE query must include a Project tag filter — never pull account-wide cost."""
+    import sys
+    from unittest.mock import MagicMock, patch
+
+    captured_calls = []
+
+    mock_ce = MagicMock()
+    mock_ce.get_cost_and_usage.side_effect = lambda **kwargs: (
+        captured_calls.append(kwargs) or
+        {"ResultsByTime": [{"Total": {"UnblendedCost": {"Amount": "1.23"}}}]}
+    )
+
+    mock_boto3 = MagicMock()
+    mock_boto3.client.return_value = mock_ce
+
+    monkeypatch.setenv("PROJECT_NAME", "platform-resume")
+
+    with patch.dict(sys.modules, {"boto3": mock_boto3}):
+        result = metrics_handler._get_monthly_cost_usd()
+
+    assert result is not None
+    assert len(captured_calls) == 1
+    call_kwargs = captured_calls[0]
+
+    # Must have a Filter targeting the Project tag
+    assert "Filter" in call_kwargs, "CE call must include a Filter to scope to project resources"
+    tag_filter = call_kwargs["Filter"].get("Tags", {})
+    assert tag_filter.get("Key") == "Project"
+    assert "platform-resume" in tag_filter.get("Values", [])
+
+
 def test_metrics_last_deployment_sanitized(lambda_context, monkeypatch):
     """commit_sha must be truncated to 8 chars; no internal ARNs."""
     deployments = [{
