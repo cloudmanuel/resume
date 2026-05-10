@@ -140,7 +140,7 @@ export default function DashboardPage() {
         <div className="bg-gradient-to-r from-cyan-400/10 to-indigo-400/10 border border-cyan-400/20 rounded-xl p-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-2">Ready to connect?</h2>
           <p className="text-slate-400 mb-6 max-w-lg mx-auto">
-            I'm open to Staff / Principal Platform Engineer, Cloud Architect, and SRE Lead roles.
+            I'm open to Cloud/ Platform Engineer, Cloud Architect, and SRE Lead roles.
             Reach out directly or grab the PDF.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
