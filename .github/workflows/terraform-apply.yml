@@ -69,7 +69,12 @@ jobs:
           else
             echo "❌ Terraform apply failed — error output below:"
             echo "----"
-            grep -E "Error:|error:|Warning:|module\.|aws_|on |line " apply.log | head -60 || cat apply.log | tail -80
+            # Skip "Refreshing state" noise; show actual errors + last 40 lines for context
+            grep -v "Refreshing state\|: Reading\.\.\.\|: Read complete\|: Still " apply.log \
+              | grep -E "Error|error|Warning|with |on |line |\│|╷|╵" \
+              | head -80 || true
+            echo "--- last 40 lines ---"
+            tail -40 apply.log
             echo "----"
           fi
           rm -f apply.log
