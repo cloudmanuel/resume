@@ -131,13 +131,11 @@ def _get_monthly_cost_usd() -> float | None:
         return None
 
 
-def _build_response(status_code: int, body: dict, allowed_origin: str) -> dict:
+def _build_response(status_code: int, body: dict) -> dict:
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": allowed_origin,
-            "Access-Control-Allow-Methods": "GET,OPTIONS",
             "Cache-Control": "public, max-age=60",
         },
         "body": json.dumps(body),
@@ -145,18 +143,14 @@ def _build_response(status_code: int, body: dict, allowed_origin: str) -> dict:
 
 
 def lambda_handler(event: dict, context) -> dict:
-    allowed_origin = os.environ.get("ALLOWED_ORIGIN", "https://manuel-anda.com")
     table_name = os.environ.get("EVENTS_TABLE_NAME", "")
-
-    if event.get("requestContext", {}).get("http", {}).get("method") == "OPTIONS":
-        return _build_response(204, {}, allowed_origin)
 
     if not table_name:
         logger.warning("EVENTS_TABLE_NAME not set — returning estimated metrics")
         return _build_response(200, {
             **FALLBACK_METRICS,
             "generated_at": datetime.now(timezone.utc).isoformat(),
-        }, allowed_origin)
+        })
 
     try:
         client = _get_dynamodb_client()
@@ -182,11 +176,11 @@ def lambda_handler(event: dict, context) -> dict:
             "data_source": "live" if not is_estimated else "estimated",
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
-        return _build_response(200, metrics, allowed_origin)
+        return _build_response(200, metrics)
 
     except Exception as exc:
         logger.error("Unhandled error in metrics handler: %s", exc)
         return _build_response(200, {
             **FALLBACK_METRICS,
             "generated_at": datetime.now(timezone.utc).isoformat(),
-        }, allowed_origin)
+        })

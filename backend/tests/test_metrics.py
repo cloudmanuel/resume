@@ -130,19 +130,12 @@ def test_metrics_live_path_partial_uptime(lambda_context, monkeypatch):
     assert body["uptime_percentage"] == 50.0
 
 
-def test_metrics_options_preflight(lambda_context, monkeypatch):
-    """OPTIONS request should return 204."""
-    event = {"requestContext": {"http": {"method": "OPTIONS"}}}
-    response = metrics_handler.lambda_handler(event, lambda_context)
-    assert response["statusCode"] == 204
-
-
-def test_metrics_cors_header_present(lambda_context, monkeypatch):
-    """CORS header must be set on all responses."""
+def test_metrics_no_cors_headers(lambda_context, monkeypatch):
+    """CORS is handled by API Gateway — Lambda must NOT return Access-Control-* headers."""
     monkeypatch.setenv("EVENTS_TABLE_NAME", "")
     event = {}
     response = metrics_handler.lambda_handler(event, lambda_context)
-    assert "Access-Control-Allow-Origin" in response["headers"]
+    assert "Access-Control-Allow-Origin" not in response["headers"]
 
 
 def test_metrics_last_deployment_sanitized(lambda_context, monkeypatch):

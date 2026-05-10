@@ -153,9 +153,10 @@ def test_contact_accepts_minimal_valid_request(lambda_context, monkeypatch):
 # HTTP method handling
 # ---------------------------------------------------------------------------
 
-def test_contact_options_returns_204(lambda_context, monkeypatch):
+def test_contact_options_returns_405(lambda_context, monkeypatch):
+    """OPTIONS preflight is intercepted by API Gateway and never reaches Lambda."""
     response = contact_handler.lambda_handler(_options_event(), lambda_context)
-    assert response["statusCode"] == 204
+    assert response["statusCode"] == 405
 
 
 def test_contact_get_returns_405(lambda_context, monkeypatch):
