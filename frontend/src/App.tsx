@@ -307,7 +307,7 @@ const TERM_LINES = [
   { kind: 'out', parts: [{ t: 'plain', v: 'I build the ' }, { t: 'k', v: 'infrastructure & developer tooling' }, { t: 'plain', v: ' product\nteams depend on: IDPs, observability, secure CI/CD, serverless.' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'ls --tree skills/' },
-  { kind: 'out', parts: [{ t: 'dim', v: 'skills/\n├─ aws/  ' }, { t: 'ok', v: '[saa-pro]' }, { t: 'dim', v: ' ' }, { t: 'ok', v: '[dop-pro]' }, { t: 'dim', v: '\n├─ iac/  terraform · cdk · github-actions\n├─ obs/  datadog · opentelemetry · temporal\n└─ lang/ python · typescript · go' }] },
+  { kind: 'out', parts: [{ t: 'dim', v: 'skills/\n├─ aws/  ' }, { t: 'ok', v: '[saa-pro]' }, { t: 'dim', v: ' ' }, { t: 'ok', v: '[dop-pro]' }, { t: 'dim', v: '\n├─ iac/  terraform · cdk · github-actions\n├─ obs/  datadog · opentelemetry · temporal\n└─ lang/ python · bash' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'deploy --status' },
   { kind: 'out', parts: [{ t: 'ok', v: '●' }, { t: 'plain', v: ' resume-control-plane · us-east-1 · uptime 99.98% · p95 84ms' }] },
