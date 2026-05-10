@@ -35,12 +35,12 @@ output "dynamodb_table_arn" {
 
 output "route53_zone_id" {
   description = "Route 53 hosted zone ID for the domain."
-  value       = aws_route53_zone.main.zone_id
+  value       = data.aws_route53_zone.main.zone_id
 }
 
 output "route53_name_servers" {
   description = "Name servers for the Route 53 hosted zone — configure these at your registrar."
-  value       = aws_route53_zone.main.name_servers
+  value       = data.aws_route53_zone.main.name_servers
 }
 
 output "acm_certificate_arn" {
