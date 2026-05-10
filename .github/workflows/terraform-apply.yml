@@ -54,28 +54,23 @@ jobs:
         working-directory: infra
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           set +x
-
+          status=0
           terraform apply \
             -input=false \
             -auto-approve \
             -no-color \
             -var="domain_name=${{ vars.PROD_DOMAIN_NAME }}" \
-            > apply.log 2>&1
-          status=$?
-
+            > apply.log 2>&1 || status=$?
           if [ "$status" -eq 0 ]; then
             grep -E "Apply complete|No changes" apply.log || true
             echo "✅ Terraform apply completed successfully."
           else
             echo "❌ Terraform apply failed — error output below:"
             echo "----"
-            # Sensitive values are already masked by the earlier masking step.
-            # Errors (resource conflicts, permission denials, etc.) are safe to print.
             grep -E "Error:|error:|Warning:|module\.|aws_|on |line " apply.log | head -60 || cat apply.log | tail -80
             echo "----"
           fi
-
           rm -f apply.log
           exit "$status"
