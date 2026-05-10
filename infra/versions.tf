@@ -8,5 +8,11 @@ terraform {
     }
   }
 
-  backend "s3" {}
+  backend "s3" {
+    bucket         = "platform-resume-tf-state-prod"
+    key            = "platform-resume/prod/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "platform-resume-tf-locks"
+  }
 }
