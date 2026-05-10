@@ -1,0 +1,66 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+backend.hcl
+tfplan
+tfplan.*
+*.tfplan
+*.tfplan.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Secrets / keys
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# OS/editor
+.DS_Store
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+*.zip
+lambda_packages/
+
+# Terraform lock files
+.terraform.lock.hcl
+backend.hcl.example
+
+# Ignore github variable file
+docs/github-variables.md

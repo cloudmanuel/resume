@@ -1,0 +1,138 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-validate:
+    name: Build and Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type check
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          VITE_SITE_URL: https://${{ vars.PROD_DOMAIN_NAME }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: [build-and-validate]
+    environment: production
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mask known infrastructure values
+        shell: bash
+        run: |
+          echo "::add-mask::${{ vars.AWS_ACCOUNT_ID }}"
+          echo "::add-mask::${{ vars.FRONTEND_BUCKET_NAME }}"
+          echo "::add-mask::${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}"
+          echo "::add-mask::${{ vars.PROD_DOMAIN_NAME }}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: Sync frontend to S3
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          aws s3 sync frontend/dist/ s3://${{ vars.FRONTEND_BUCKET_NAME }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html"
+
+          # index.html should not be cached aggressively
+          aws s3 cp frontend/dist/index.html s3://${{ vars.FRONTEND_BUCKET_NAME }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*" \
+            --no-cli-pager
+
+      - name: Record deployment event
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_SHORT="${GITHUB_SHA::8}"
+          aws dynamodb put-item \
+            --table-name ${{ vars.DYNAMODB_TABLE_NAME }} \
+            --item "{
+              \"entity_type\": {\"S\": \"DEPLOYMENT\"},
+              \"timestamp_id\": {\"S\": \"${TIMESTAMP}#${{ github.run_id }}\"},
+              \"status\": {\"S\": \"success\"},
+              \"commit_sha\": {\"S\": \"${COMMIT_SHORT}\"},
+              \"branch\": {\"S\": \"main\"},
+              \"actor\": {\"S\": \"github-actions\"},
+              \"summary\": {\"S\": \"Frontend deployed and CloudFront invalidated\"},
+              \"run_id\": {\"S\": \"${{ github.run_id }}\"}
+            }" \
+            --no-cli-pager
+          echo "Deployment event recorded successfully."
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment complete"
+          echo "Commit: ${GITHUB_SHA::8}"
+          echo "Branch: main"
+          echo "Actor: ${{ github.actor }}"
