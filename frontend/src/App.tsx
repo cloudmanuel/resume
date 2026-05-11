@@ -301,7 +301,7 @@ const CERTS = [
 
 const TERM_LINES = [
   { kind: 'prompt', cmd: 'whoami' },
-  { kind: 'out', parts: [{ t: 'plain', v: 'manuel anda — ' }, { t: 'k', v: 'platform / cloud engineer' }, { t: 'plain', v: ' · 4+ yrs · falls church, va' }] },
+  { kind: 'out', parts: [{ t: 'plain', v: 'manuel anda — ' }, { t: 'k', v: 'platform / cloud engineer' }, { t: 'plain', v: ' · 5+ yrs · falls church, va' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'cat focus.md' },
   { kind: 'out', parts: [{ t: 'plain', v: 'I build the ' }, { t: 'k', v: 'infrastructure & developer tooling' }, { t: 'plain', v: ' product\nteams depend on: IDPs, observability, secure CI/CD, serverless.' }] },
@@ -505,7 +505,7 @@ function Hero({ onCmd, replay, setReplay }: { onCmd: () => void; replay: number;
               infrastructure.
             </h1>
             <p className="hero-sub">
-              Four+ years building secure, automated cloud platforms on AWS — internal developer
+              Five+ years building secure, automated cloud platforms on AWS — internal developer
               platforms, observability pipelines, and serverless systems. This site is itself a
               live deployment.
             </p>

@@ -131,7 +131,7 @@ export default function ResumePage() {
             Summary
           </h3>
           <p className="text-slate-300 leading-relaxed text-sm">
-            Platform / Cloud Engineer with 4+ years of experience designing, building, and
+            Platform / Cloud Engineer with 5+ years of experience designing, building, and
             operating cloud infrastructure on AWS. Specialize in developer experience platforms
             (Coder, IDP tooling), observability pipelines (OpenTelemetry, Datadog), and
             production-grade serverless architectures. Strong infrastructure-as-code discipline
