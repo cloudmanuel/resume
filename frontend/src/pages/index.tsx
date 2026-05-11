@@ -56,7 +56,7 @@ export default function DashboardPage() {
             About
           </p>
           <p className="text-slate-300 leading-relaxed mb-3">
-            I'm a Platform / Cloud Engineer with 4+ years building the infrastructure and tooling
+            I'm a Platform / Cloud Engineer with 5+ years building the infrastructure and tooling
             that product teams depend on. My focus is on developer experience, reliability, and
             security — the kind of work that makes the rest of engineering faster.
           </p>
