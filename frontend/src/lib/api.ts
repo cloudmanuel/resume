@@ -37,6 +37,7 @@ interface RawDeployment {
   commit_sha: string | null
   branch: string
   created_at: string
+  duration_s?: number  // 0 or absent when the record predates duration tracking
 }
 
 interface RawDeploymentsResponse {
@@ -116,8 +117,8 @@ export async function fetchDeployments(): Promise<Deployment[]> {
     summary:     d.summary ?? '',
     status:      (d.status as Deployment['status']) ?? 'success',
     deployed_at: d.created_at,
-    // Backend does not track build duration
-    duration_s:  0,
+    // 0 means "not recorded" — the UI renders it as '—'
+    duration_s:  d.duration_s ?? 0,
   }))
 }
 

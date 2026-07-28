@@ -4,15 +4,44 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Manuel Anda — Platform / Cloud Engineer. A resume operated like production infrastructure." />
+    <meta name="description" content="Manuel Anda — Platform / Cloud Engineer. A resume operated like production infrastructure: live metrics, Terraform IaC, and CI/CD you can inspect." />
     <meta name="theme-color" content="#f6f4ee" />
     <title>Manuel Anda — Platform Engineer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
-      rel="stylesheet"
-    />
+
+    <!-- Social link previews -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://manuel-anda.com/" />
+    <meta property="og:title" content="Manuel Anda — Platform / Cloud Engineer" />
+    <meta property="og:description" content="A resume operated like production infrastructure — live metrics, Terraform IaC, CI/CD, and runbooks you can inspect." />
+    <meta property="og:image" content="https://manuel-anda.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Manuel Anda — Platform / Cloud Engineer" />
+    <meta name="twitter:description" content="A resume operated like production infrastructure — live metrics, Terraform IaC, CI/CD, and runbooks you can inspect." />
+    <meta name="twitter:image" content="https://manuel-anda.com/og.png" />
+
+    <!-- Fonts are self-hosted (see src/index.css); preload the two variable files -->
+    <link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Start the metrics API TLS handshake early -->
+    <link rel="preconnect" href="https://api.manuel-anda.com" crossorigin />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Manuel Anda",
+      "jobTitle": "Platform / Cloud Engineer",
+      "url": "https://manuel-anda.com/",
+      "sameAs": [
+        "https://github.com/cloudmanuel",
+        "https://www.linkedin.com/in/manuel-anda"
+      ],
+      "knowsAbout": ["AWS", "Terraform", "CI/CD", "Platform Engineering", "Observability", "Serverless"]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
