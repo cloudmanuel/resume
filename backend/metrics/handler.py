@@ -104,9 +104,12 @@ def _get_monthly_cost_usd() -> float | None:
     Scoped to the 'Project' cost-allocation tag so only resources belonging to
     this deployment are counted — not the entire AWS account.
 
-    Prerequisites (one-time AWS console setup):
-      Billing → Cost allocation tags → activate the 'Project' tag.
-    Without activation, CE ignores the filter and would return account-wide cost.
+    Prerequisites (one-time account setup, done 2026-07-28):
+      The 'Project' cost-allocation tag must be Active (Billing → Cost
+      allocation tags, or ce:UpdateCostAllocationTagsStatus). While the tag is
+      inactive, CE indexes no costs under it and this filter matches $0.00 —
+      it does NOT fall back to account-wide cost. After activation, run a tag
+      backfill (ce:StartCostAllocationTagBackfill) to cover earlier days.
 
     Cost Explorer data lags ~24 h, so we query up to yesterday. Returns None on
     any error so the caller falls back gracefully without exposing internals.
@@ -132,10 +135,9 @@ def _get_monthly_cost_usd() -> float | None:
             TimePeriod={"Start": start, "End": end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost"],
-            # Filter to this project's tagged resources only.
-            # 'Project' must be activated as a cost-allocation tag in AWS Billing:
-            #   Billing → Cost allocation tags → find 'Project' → Activate
-            # Without activation CE ignores the filter and returns account-wide cost.
+            # Filter to this project's tagged resources only. Requires the
+            # 'Project' cost-allocation tag to be Active (see docstring) —
+            # an inactive tag makes this filter match $0.00, not account-wide.
             Filter={
                 "Tags": {
                     "Key": "Project",
@@ -151,8 +153,8 @@ def _get_monthly_cost_usd() -> float | None:
         cost = round(float(amount), 2)
         logger.info(
             "Cost Explorer result: $%s (filter: Project=%s). "
-            "If this looks like account-wide cost, activate the 'Project' tag "
-            "in AWS Billing → Cost allocation tags.",
+            "A persistent $0.00 means the 'Project' cost-allocation tag is "
+            "inactive or its backfill hasn't completed yet.",
             cost, project_name,
         )
         return cost
