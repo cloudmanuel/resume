@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- terminal-style mark: ink tile, green prompt dot, paper text lines -->
+  <rect width="64" height="64" rx="14" fill="#0e0e0c"/>
+  <circle cx="17" cy="19" r="5" fill="#3fae6a"/>
+  <rect x="28" y="16" width="22" height="6" rx="3" fill="#f6f4ee"/>
+  <rect x="14" y="32" width="36" height="6" rx="3" fill="#8a877c"/>
+  <rect x="14" y="46" width="24" height="6" rx="3" fill="#5e5c54"/>
+</svg>

@@ -27,6 +27,10 @@ def _response(status_code: int, body: dict) -> dict:
 def _sanitize_deployment(item: dict) -> dict:
     """Strip internal fields and return only public-safe fields."""
     raw_sha = item.get("commit_sha", {}).get("S") or ""
+    try:
+        duration_s = int(item.get("duration_s", {}).get("N", 0))
+    except (TypeError, ValueError):
+        duration_s = 0
     return {
         "id": item.get("record_id", {}).get("S") or item.get("timestamp_id", {}).get("S", ""),
         "status": item.get("status", {}).get("S"),
@@ -34,6 +38,8 @@ def _sanitize_deployment(item: dict) -> dict:
         "commit_sha": raw_sha[:8] if raw_sha else None,
         "branch": item.get("branch", {}).get("S"),
         "created_at": item.get("created_at", {}).get("S"),
+        # 0 means "not recorded" (records written before duration tracking)
+        "duration_s": duration_s,
     }
 
 

@@ -58,8 +58,8 @@ const RUNBOOKS = [
     desc: '/metrics endpoint returning errors or timing out.',
     symptoms: ['Metrics page falls back to demo data', 'Lambda error rate > 1%', 'API GW 5xx > 5%'],
     triage: [
-      'CloudWatch → Lambda resume-api-prod: error count + duration.',
-      'Logs → /aws/lambda/resume-api-prod, filter ERROR.',
+      'CloudWatch → Lambda platform-resume-metrics: error count + duration.',
+      'Logs → /aws/lambda/platform-resume-metrics, filter ERROR.',
       'DynamoDB throttling? (table is on-demand — should be rare)',
       'API GW integration ARN still pointing at correct Lambda?',
     ],
@@ -73,7 +73,7 @@ const RUNBOOKS = [
   {
     id: 'contact-abuse', sev: 'P3', title: 'Contact Form Abuse',
     desc: 'Spam or rate-abuse against the contact endpoint.',
-    symptoms: ['Same IP submitting many times in a short window', 'DDB contact-submissions growing fast', 'SES complaint rate climbing'],
+    symptoms: ['Same IP submitting many times in a short window', 'CONTACT_REQUEST items in the events table growing fast', 'SES complaint rate climbing'],
     triage: [
       'Scan DDB for patterns: same email domain, IP, body.',
       'Check API GW usage plan; is throttling configured?',
@@ -316,11 +316,19 @@ function relativeTime(isoStr: string): string {
 
 // ─────────────────────────── terminal ───────────────────────────
 
-function Terminal({ replayKey }: { replayKey: number }) {
-  const [phase, setPhase] = useState({ line: 0, char: 0 })
-  const [done, setDone] = useState(false)
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-  useEffect(() => { setPhase({ line: 0, char: 0 }); setDone(false) }, [replayKey])
+function Terminal({ replayKey }: { replayKey: number }) {
+  // With reduced motion, skip the typing animation and show the finished output
+  const [phase, setPhase] = useState(() =>
+    prefersReducedMotion() ? { line: TERM_LINES.length, char: 0 } : { line: 0, char: 0 })
+  const [done, setDone] = useState(prefersReducedMotion)
+
+  useEffect(() => {
+    if (prefersReducedMotion()) { setPhase({ line: TERM_LINES.length, char: 0 }); setDone(true); return }
+    setPhase({ line: 0, char: 0 }); setDone(false)
+  }, [replayKey])
 
   useEffect(() => {
     if (done) return
@@ -480,9 +488,9 @@ function ProductionSnapshot({ metrics, health }: { metrics: Metrics; health: Hea
   const p95Display = metrics.p95_latency_ms > 0 ? String(metrics.p95_latency_ms) : '—'
   const costDisplay = metrics.monthly_cost_usd > 0 ? `$${metrics.monthly_cost_usd.toFixed(2)}` : '—'
   const stats = [
-    { l: 'Uptime / 30d',  v: metrics.uptime_30d.toFixed(2), u: '%',  note: null },
-    { l: 'p95 latency',   v: p95Display,                     u: p95Display !== '—' ? 'ms' : '', note: 'synthetic checks' },
-    { l: 'Last deploy',   v: lastDeploy,                     u: '',   note: null },
+    { l: 'Uptime / 30d',  v: metrics.uptime_30d.toFixed(2), u: '%',  note: 'synthetic checks · 15 min' },
+    { l: 'p95 latency',   v: p95Display,                     u: p95Display !== '—' ? 'ms' : '', note: 'last 100 checks' },
+    { l: 'Last deploy',   v: lastDeploy,                     u: '',   note: 'GitHub Actions · main' },
     { l: 'Infra cost',    v: costDisplay,                    u: costDisplay !== '—' ? '/mo' : '', note: 'AWS Cost Explorer' },
   ]
 
@@ -509,6 +517,7 @@ function ProductionSnapshot({ metrics, health }: { metrics: Metrics; health: Hea
                   {s.l}
                   {metrics._demo && <span className="demo-tag" style={{ marginLeft: 6 }}>demo</span>}
                 </div>
+                {s.note && <div className="stat-note">{s.note}</div>}
               </div>
             ))}
           </div>
@@ -545,7 +554,7 @@ function ImpactStrip() {
         <div className="sec-head">
           <span className="sec-num">05 /</span>
           <h2 className="sec-title"><span className="hash">#</span> impact</h2>
-          <span className="sec-meta">before / after · across 3 roles</span>
+          <span className="sec-meta">before / after · across roles</span>
         </div>
         <Reveal>
           <div className="impact-grid">
@@ -592,7 +601,7 @@ function About() {
           </Reveal>
           <Reveal delay={120}>
             <div className="now-card">
-              <h4>/now</h4>
+              <h4>/now <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink-4)', textTransform: 'none', letterSpacing: 0 }}>· updated jul 2026</span></h4>
               {NOW.map(n => (
                 <div className="now-row" key={n.t}>
                   <span className="t">{n.t}</span>
@@ -636,7 +645,7 @@ function DeploymentTimeline({ deployments }: { deployments: Deployment[] }) {
                 <span className="dep-hash">{d.commit_hash}</span>
                 <span className="dep-msg">{d.summary}</span>
                 <span className="dep-when">{relativeTime(d.deployed_at)}</span>
-                <span className="dep-dur">{d.duration_s}s</span>
+                <span className="dep-dur">{d.duration_s > 0 ? `${d.duration_s}s` : '—'}</span>
               </div>
             ))}
           </div>

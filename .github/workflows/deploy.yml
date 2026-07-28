@@ -16,6 +16,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  actions: read  # read run_started_at to record real deploy duration
 
 jobs:
   build-and-validate:
@@ -125,6 +126,16 @@ jobs:
           RECORD_ID=$(cat /proc/sys/kernel/random/uuid)
           # TTL: 90 days from now
           TTL=$(( $(date -u +%s) + 90 * 24 * 3600 ))
+          # Real end-to-end duration: seconds since the workflow run started.
+          # Falls back to 0 (frontend renders '—') if the API call fails.
+          RUN_STARTED_AT=$(curl -sf -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin).get('run_started_at',''))" || echo "")
+          if [ -n "${RUN_STARTED_AT}" ]; then
+            DURATION_S=$(( $(date -u +%s) - $(date -u -d "${RUN_STARTED_AT}" +%s) ))
+          else
+            DURATION_S=0
+          fi
           aws dynamodb put-item \
             --table-name ${{ vars.DYNAMODB_TABLE_NAME }} \
             --item "{
@@ -138,6 +149,7 @@ jobs:
               \"summary\": {\"S\": \"${COMMIT_MSG}\"},
               \"created_at\": {\"S\": \"${TIMESTAMP}\"},
               \"run_id\": {\"S\": \"${{ github.run_id }}\"},
+              \"duration_s\": {\"N\": \"${DURATION_S}\"},
               \"ttl\": {\"N\": \"${TTL}\"}
             }" \
             --no-cli-pager

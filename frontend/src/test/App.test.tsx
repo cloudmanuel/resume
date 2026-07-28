@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, fireEvent } from '@testing-library/react'
 import App from '../App'
 import { GITHUB_URL, LINKEDIN_URL } from '../lib/constants'
 import type { Metrics, Deployment, HealthCheck } from '../types'
@@ -10,7 +10,7 @@ vi.mock('../lib/api', () => ({
   fetchDeployments: vi.fn(),
   submitContact: vi.fn(),
 }))
-import { fetchMetrics, fetchHealth, fetchDeployments } from '../lib/api'
+import { fetchMetrics, fetchHealth, fetchDeployments, submitContact } from '../lib/api'
 
 const liveMetrics: Metrics = {
   uptime_30d: 100,
@@ -29,7 +29,8 @@ const liveHealth: HealthCheck[] = [
 ]
 
 const liveDeployments: Deployment[] = [
-  { id: 'd-1', commit_hash: 'abc1234', branch: 'main', summary: 'feat: test deploy', status: 'success', deployed_at: new Date().toISOString(), duration_s: 0 },
+  { id: 'd-1', commit_hash: 'abc1234', branch: 'main', summary: 'feat: test deploy', status: 'success', deployed_at: new Date().toISOString(), duration_s: 94 },
+  { id: 'd-2', commit_hash: 'def5678', branch: 'main', summary: 'feat: older deploy', status: 'success', deployed_at: new Date().toISOString(), duration_s: 0 },
 ]
 
 // Resolve on a short delay so tests exercise the demo-state → live-state swap
@@ -99,6 +100,26 @@ describe('App', () => {
     await screen.findByText('feat: test deploy')
     const work = document.getElementById('work')!
     expect(within(work as HTMLElement).getByText('AWS Solutions Architect — Professional')).toBeInTheDocument()
+  })
+
+  it('shows recorded deploy durations and a dash for unrecorded ones', async () => {
+    mockApi()
+    render(<App />)
+    await screen.findByText('feat: test deploy')
+    const deploys = document.getElementById('deploys') as HTMLElement
+    expect(within(deploys).getByText('94s')).toBeInTheDocument()
+    expect(within(deploys).getByText('—')).toBeInTheDocument()
+    expect(within(deploys).queryByText('0s')).toBeNull()
+  })
+
+  it('rejects an empty contact form with inline errors', async () => {
+    mockApi()
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /send message/ }))
+    expect(await screen.findByText('required')).toBeInTheDocument()
+    expect(screen.getByText('valid email required')).toBeInTheDocument()
+    expect(screen.getByText('message must be at least 10 characters')).toBeInTheDocument()
+    expect(vi.mocked(submitContact)).not.toHaveBeenCalled()
   })
 
   it('contact links display the same host and path they point to', async () => {
