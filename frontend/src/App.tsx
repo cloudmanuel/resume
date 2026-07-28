@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { fetchMetrics, fetchHealth, fetchDeployments, submitContact } from './lib/api'
 import { CANDIDATE_EMAIL, GITHUB_URL, LINKEDIN_URL, PDF_URL, REPO_URL } from './lib/constants'
 import type { Metrics, Deployment, HealthCheck, ContactFormData } from './types'
-import { demoMetrics, demoDeployments, demoHealthChecks, demoUptimeData } from './data/demo'
+import { demoMetrics, demoDeployments, demoHealthChecks } from './data/demo'
 
 // ─────────────────────────── static data ───────────────────────────
 
@@ -10,12 +10,11 @@ const SECTIONS = [
   { id: 'home',         label: 'home' },
   { id: 'snapshot',     label: 'snapshot' },
   { id: 'about',        label: 'about' },
-  { id: 'deploys',      label: 'deploys' },
-  { id: 'scorecard',    label: 'scorecard' },
-  { id: 'architecture', label: 'arch' },
-  { id: 'runbooks',     label: 'runbooks' },
   { id: 'work',         label: 'work' },
   { id: 'projects',     label: 'projects' },
+  { id: 'architecture', label: 'arch' },
+  { id: 'deploys',      label: 'deploys' },
+  { id: 'runbooks',     label: 'runbooks' },
   { id: 'contact',      label: 'contact' },
 ]
 
@@ -33,17 +32,6 @@ const IMPACT = [
   { k: 'deploy freq.',  v: '1×/wk', w: '5×/d',  d: '+25×' },
   { k: 'data latency',  v: '6 h',   w: '5 m',   d: '−99%' },
   { k: 'critical CVEs', v: '80+',   w: '0',     d: '−100%' },
-]
-
-const SCORECARD = [
-  { svc: 'AWS Cloud Infrastructure',  slo: 'Systems stay up 99.95% of the time',            val: '99.98%',   trend: '↑ exceeding target',        tier: 'tier-1', evidence: 'AWS SAA · 4 yrs hands-on' },
-  { svc: 'Infrastructure as Code',    slo: '100% of infra defined in code — no manual clicks', val: '100%',  trend: '→ fully maintained',         tier: 'tier-1', evidence: 'Terraform · 60+ reusable modules' },
-  { svc: 'Automated Deployments',     slo: 'Ship changes in under 5 minutes, safely',        val: '3 min 12s',trend: '↑ 18% faster than last year', tier: 'tier-1', evidence: 'GitHub Actions · zero long-lived credentials' },
-  { svc: 'Monitoring & Alerting',     slo: 'Every service has full observability',            val: '100%',     trend: '↑ 12% more coverage added',  tier: 'tier-1', evidence: 'Datadog · OpenTelemetry · PagerDuty' },
-  { svc: 'Security & Compliance',     slo: 'Zero critical vulnerabilities open',              val: '0 open',   trend: '✓ none found in 30 days',    tier: 'tier-1', evidence: 'SOC 2 readiness · GuardDuty · Security Hub' },
-  { svc: 'Cloud Cost Management',     slo: 'Reduce spend without losing reliability',         val: '−34% YoY', trend: '↑ 34% less spend year-on-year',tier: 'tier-2', evidence: 'Reserved capacity · rightsizing · Spot instances' },
-  { svc: 'Container Orchestration',   slo: '99.9% Kubernetes cluster availability',           val: '99.92%',   trend: '→ holding steady',           tier: 'tier-2', evidence: 'EKS · Helm · 4 production clusters' },
-  { svc: 'Serverless APIs',           slo: 'APIs respond in under 200ms',                    val: '84ms',     trend: '↑ 9% faster this quarter',   tier: 'tier-2', evidence: 'AWS Lambda · DynamoDB · API Gateway' },
 ]
 
 const RUNBOOKS = [
@@ -160,31 +148,6 @@ interface Service {
 }
 
 const SERVICES: Service[] = [
-  // {
-  //   id: 'svc-002', name: 'Observability Pipeline',
-  //   blurb: 'OTel collector on ECS Fargate routing traces/metrics/logs to Datadog with unified dashboards and PagerDuty alerts.',
-  //   stack: ['Datadog', 'OTel', 'ECS', 'ALB', 'CloudWatch'], metric: 'MTTR 90 → 15 min',
-  //   cs: {
-  //     owner: 'sre · m. anda', repo: 'github.com/org/otel-pipeline', lastDeploy: '2 days ago · v1.8.3',
-  //     context: 'Three teams, three vendors, no shared trace context. Incidents took 60–90 minutes just to assemble the timeline across CloudWatch, New Relic, and direct Datadog agents. SLO reporting was manual quarterly spreadsheets.',
-  //     decisions: [
-  //       { t: 'OTel collector as the single ingress', b: 'Vendor-neutral. We can swap Datadog for another backend by changing one exporter config — no app re-instrumentation.' },
-  //       { t: 'Tail-based sampling at the collector', b: 'Keep 100% of error/slow traces, 5% of healthy traffic. Cut ingest cost ~70% without losing signal during incidents.' },
-  //       { t: 'Standard resource attributes', b: 'service.name, deployment.environment, team — enforced by an OPA policy in the collector. Dashboards finally agree on what "service" means.' },
-  //     ],
-  //     impact: [
-  //       { l: 'MTTR (p50)', was: '92 min', now: '15 min', d: '−84%' },
-  //       { l: 'observability cost / mo', was: '$18.4k', now: '$7.1k', d: '−61%' },
-  //       { l: 'services with golden signals', was: '12', now: '47', d: '+35' },
-  //     ],
-  //     timeline: [
-  //       { h: 'f3a8b21', t: 'tail sampling · 70% cost cut', w: 'Q2' },
-  //       { h: 'c92d4f6', t: '47 services migrated', w: 'Q1' },
-  //       { h: '8b1e3a0', t: 'collector ga on fargate', w: 'Q4 prev' },
-  //     ],
-  //     retro: 'Underestimated the change-management work. The tech was easy; convincing three teams to delete their bespoke dashboards took longer than the build. Next time, lead with a single "before/after MTTR" case study from an early adopter team before the migration ask.',
-  //   },
-  // },
   {
     id: 'svc-002', name: 'Automated EC2 Provisioning',
     blurb: 'Self-service EC2 provisioning via AWS Service Catalog — golden AMIs baked by EC2 Image Builder, dynamic DNS via Route 53, SSM for post-boot automation.',
@@ -279,7 +242,7 @@ const SERVICES: Service[] = [
         { t: 'Lambda + DynamoDB for the API', b: 'On-demand pricing means it costs nothing when nobody\'s looking. Four Lambda functions: metrics, deployments, health, and contact — each with least-privilege IAM.' },
       ],
       impact: [
-        { l: 'monthly cost', was: '—', now: '$2.41', d: 'real' },
+        { l: 'monthly cost', was: '—', now: '< $5', d: 'live in snapshot' },
         { l: 'deploy time', was: '—', now: '94s', d: 'GHA → live' },
         { l: 'long-lived AWS keys', was: '—', now: '0', d: 'OIDC only' },
       ],
@@ -310,7 +273,7 @@ const TERM_LINES = [
   { kind: 'out', parts: [{ t: 'dim', v: 'skills/\n├─ aws/  ' }, { t: 'ok', v: '[saa-pro]' }, { t: 'dim', v: ' ' }, { t: 'dim', v: '\n├─ iac/  terraform · cdk · github-actions\n├─ obs/  datadog · opentelemetry · temporal\n└─ lang/ python · bash' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'deploy --status' },
-  { kind: 'out', parts: [{ t: 'ok', v: '●' }, { t: 'plain', v: ' resume-control-plane · us-east-1 · uptime 99.98% · p95 84ms' }] },
+  { kind: 'out', parts: [{ t: 'ok', v: '●' }, { t: 'plain', v: ' resume-control-plane · us-east-1 · operational — live numbers below' }] },
   { kind: 'blank' },
   { kind: 'prompt', cmd: 'say hi' },
   { kind: 'out', parts: [{ t: 'plain', v: 'open to ' }, { t: 'k', v: 'cloud / platform engineering' }, { t: 'plain', v: ' roles → ' + CANDIDATE_EMAIL }] },
@@ -340,26 +303,6 @@ function ClockUTC() {
   const mm = String(t.getUTCMinutes()).padStart(2, '0')
   const ss = String(t.getUTCSeconds()).padStart(2, '0')
   return <span>{hh}:{mm}:{ss} UTC</span>
-}
-
-function Sparkline({ data, w = 320, h = 60 }: { data: number[]; w?: number; h?: number }) {
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const span = Math.max(0.6, max - min)
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w
-    const y = h - ((v - (min - 0.5)) / (span + 0.5)) * (h - 6) - 2
-    return [x, y] as [number, number]
-  })
-  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
-  const area = `${path} L${w},${h} L0,${h} Z`
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" style={{ display: 'block' }}>
-      <path d={area} fill="var(--accent-soft)" />
-      <path d={path} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((p, i) => data[i] < 100 ? <circle key={i} cx={p[0]} cy={p[1]} r="2.5" fill="var(--warn)" /> : null)}
-    </svg>
-  )
 }
 
 function relativeTime(isoStr: string): string {
@@ -491,13 +434,13 @@ function Hero({ onCmd, replay, setReplay }: { onCmd: () => void; replay: number;
           <div>
             <Terminal replayKey={replay} />
             <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--ink-4)' }}>
-              <span>● live · synced from /docs/about.md</span>
+              <span>● scripted demo · not a live shell</span>
               <button className="commit-toggle" onClick={() => setReplay(r => r + 1)}>↻ replay</button>
             </div>
           </div>
           <div className="hero-side">
             <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-              <span className="pill"><span className="dot" /> Currently Employed · responds &lt;24h</span>
+              <span className="pill"><span className="dot" /> Currently Employed · open to new roles</span>
             </div>
             <h1 className="hero-headline serif">
               A resume,<br />
@@ -519,7 +462,7 @@ function Hero({ onCmd, replay, setReplay }: { onCmd: () => void; replay: number;
               <div><div className="label">role</div><div className="val">Platform / Cloud Eng</div></div>
               <div><div className="label">based</div><div className="val">Falls Church, VA · remote</div></div>
               <div><div className="label">stack</div><div className="val">AWS · Terraform · Py</div></div>
-              <div><div className="label">yrs/certs</div><div className="val">4y exp · 2 certs</div></div>
+              <div><div className="label">yrs/certs</div><div className="val">5+ yrs · 2 certs</div></div>
             </div>
           </div>
         </div>
@@ -528,9 +471,11 @@ function Hero({ onCmd, replay, setReplay }: { onCmd: () => void; replay: number;
   )
 }
 
-// ─────────────────────────── status strip ───────────────────────────
+// ─────────────────────────── production snapshot ───────────────────────────
 
-function StatusStrip({ metrics }: { metrics: Metrics }) {
+function ProductionSnapshot({ metrics, health }: { metrics: Metrics; health: HealthCheck[] }) {
+  const passing = health.filter(h => h.status === 'passing').length
+  const isDemo = health.some(h => h._demo)
   const lastDeploy = metrics.last_deploy_at ? relativeTime(metrics.last_deploy_at) : '—'
   const p95Display = metrics.p95_latency_ms > 0 ? String(metrics.p95_latency_ms) : '—'
   const costDisplay = metrics.monthly_cost_usd > 0 ? `$${metrics.monthly_cost_usd.toFixed(2)}` : '—'
@@ -540,34 +485,6 @@ function StatusStrip({ metrics }: { metrics: Metrics }) {
     { l: 'Last deploy',   v: lastDeploy,                     u: '',   note: null },
     { l: 'Infra cost',    v: costDisplay,                    u: costDisplay !== '—' ? '/mo' : '', note: 'AWS Cost Explorer' },
   ]
-  return (
-    <div className="wrap">
-      <Reveal>
-        <div className="status">
-          {stats.map(s => (
-            <div className="stat" key={s.l}>
-              <div className="kv">
-                <span className="v">{s.v}</span>
-                {s.u && <span className="u">{s.u}</span>}
-              </div>
-              <div className="l">
-                {s.l}
-                {metrics._demo && <span className="demo-tag" style={{ marginLeft: 6 }}>demo</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Reveal>
-    </div>
-  )
-}
-
-// ─────────────────────────── production snapshot ───────────────────────────
-
-function ProductionSnapshot({ metrics, health }: { metrics: Metrics; health: HealthCheck[] }) {
-  const passing = health.filter(h => h.status === 'passing').length
-  const uptimeData = demoUptimeData.map(d => d.uptime)
-  const isDemo = health.some(h => h._demo)
 
   return (
     <section id="snapshot" className="sec scrolled-target" style={{ paddingTop: 32 }}>
@@ -581,34 +498,37 @@ function ProductionSnapshot({ metrics, health }: { metrics: Metrics; health: Hea
           </span>
         </div>
         <Reveal>
-          <div className="snap-grid">
-            <div className="snap-card">
-              <div className="snap-head">
-                <span className="snap-l">uptime · last 30 days</span>
-                <span className="pill"><span className="dot" /> healthy</span>
+          <div className="status">
+            {stats.map(s => (
+              <div className="stat" key={s.l}>
+                <div className="kv">
+                  <span className="v">{s.v}</span>
+                  {s.u && <span className="u">{s.u}</span>}
+                </div>
+                <div className="l">
+                  {s.l}
+                  {metrics._demo && <span className="demo-tag" style={{ marginLeft: 6 }}>demo</span>}
+                </div>
               </div>
-              <div className="snap-big">{metrics.uptime_30d.toFixed(2)}<span className="snap-u">%</span></div>
-              <div className="snap-spark"><Sparkline data={uptimeData} h={56} /></div>
-              <div className="snap-foot">
-                <span>30d ago</span><span>1 incident · 47 min</span><span>now</span>
-              </div>
+            ))}
+          </div>
+        </Reveal>
+        <Reveal delay={80}>
+          <div className="snap-card" style={{ marginTop: 16 }}>
+            <div className="snap-head">
+              <span className="snap-l">health checks</span>
+              <span className="pill"><span className="dot" /> {passing}/{health.length} passing</span>
             </div>
-            <div className="snap-card">
-              <div className="snap-head">
-                <span className="snap-l">health checks</span>
-                <span className="pill"><span className="dot" /> {passing}/{health.length} passing</span>
-              </div>
-              <ul className="snap-checks">
-                {health.map(h => (
-                  <li key={h.id}>
-                    <span className="hc-dot" data-tone={h.status === 'passing' ? 'ok' : h.status === 'failing' ? 'fail' : 'warn'} />
-                    <span className="hc-name">{h.name}</span>
-                    <span className="hc-region">us-east-1</span>
-                    <span className="hc-ms">{h.latency_ms}ms</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul className="snap-checks">
+              {health.map(h => (
+                <li key={h.id}>
+                  <span className="hc-dot" data-tone={h.status === 'passing' ? 'ok' : h.status === 'failing' ? 'fail' : 'warn'} />
+                  <span className="hc-name">{h.name}</span>
+                  <span className="hc-region">us-east-1</span>
+                  <span className="hc-ms">{h.latency_ms}ms</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </Reveal>
       </div>
@@ -623,7 +543,7 @@ function ImpactStrip() {
     <section className="sec scrolled-target" style={{ paddingTop: 24, paddingBottom: 0 }}>
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">02 /</span>
+          <span className="sec-num">05 /</span>
           <h2 className="sec-title"><span className="hash">#</span> impact</h2>
           <span className="sec-meta">before / after · across 3 roles</span>
         </div>
@@ -654,7 +574,7 @@ function About() {
     <section id="about" className="sec scrolled-target">
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">03 /</span>
+          <span className="sec-num">02 /</span>
           <h2 className="sec-title"><span className="hash">#</span> about</h2>
           <span className="sec-meta">cat about.md</span>
         </div>
@@ -695,7 +615,7 @@ function DeploymentTimeline({ deployments }: { deployments: Deployment[] }) {
     <section id="deploys" className="sec scrolled-target">
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">04 /</span>
+          <span className="sec-num">07 /</span>
           <h2 className="sec-title"><span className="hash">#</span> deploys</h2>
           <span className="sec-meta">
             main · last {deployments.length} builds
@@ -717,61 +637,6 @@ function DeploymentTimeline({ deployments }: { deployments: Deployment[] }) {
                 <span className="dep-msg">{d.summary}</span>
                 <span className="dep-when">{relativeTime(d.deployed_at)}</span>
                 <span className="dep-dur">{d.duration_s}s</span>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
-
-// ─────────────────────────── platform scorecard ───────────────────────────
-
-function PlatformScorecard() {
-  const tier1 = SCORECARD.filter(s => s.tier === 'tier-1')
-  const tier2 = SCORECARD.filter(s => s.tier === 'tier-2')
-  const Row = ({ s }: { s: typeof SCORECARD[0] }) => (
-    <div className="sc-row">
-      <span className="sc-svc">{s.svc}</span>
-      <span className="sc-slo">{s.slo}</span>
-      <span className="sc-val"><span className="hc-dot" data-tone="ok" />{s.val}</span>
-      <span className="sc-trend">{s.trend}</span>
-      <span className="sc-evi">{s.evidence}</span>
-    </div>
-  )
-  return (
-    <section id="scorecard" className="sec scrolled-target">
-      <div className="wrap">
-        <div className="sec-head">
-          <span className="sec-num">05 /</span>
-          <h2 className="sec-title"><span className="hash">#</span> platform scorecard</h2>
-          <span className="sec-meta">skills · what I target · what I've delivered</span>
-        </div>
-        <Reveal>
-          <div className="sc-table">
-            <div className="sc-row sc-head">
-              <span>skill area</span><span>what I aim for</span><span>actual result</span><span>recent change</span><span>how I know</span>
-            </div>
-            <div className="sc-tier">core strengths</div>
-            {tier1.map(s => <Row key={s.svc} s={s} />)}
-            <div className="sc-tier">supporting skills</div>
-            {tier2.map(s => <Row key={s.svc} s={s} />)}
-          </div>
-        </Reveal>
-        {/* <div className="sec-head" style={{ marginTop: 36 }}>
-          <span className="sec-num">05.1 /</span>
-          <h3 className="sec-title" style={{ fontSize: 18 }}><span className="hash">#</span> certifications</h3>
-        </div> */}
-        <Reveal>
-          <div className="cert-row">
-            {CERTS.map(c => (
-              <div className="cert" key={c.abbr}>
-                <span className="badge">{c.abbr}</span>
-                <div>
-                  <div className="cert-name">{c.name}</div>
-                  <div className="cert-meta">{c.meta}</div>
-                </div>
               </div>
             ))}
           </div>
@@ -851,7 +716,8 @@ function Architecture() {
             All resources provisioned in Terraform with an S3 + DynamoDB remote backend. Deploys run via
             GitHub Actions assuming an IAM role through OIDC — zero long-lived AWS credentials in the
             pipeline. CloudFront serves a private S3 origin via OAC; API Gateway → Lambda → DynamoDB
-            handles dynamic reads. Cost: ~$2.41/mo at current traffic.
+            handles dynamic reads. Runs for a few dollars a month — the live figure is in the
+            production snapshot up top.
           </p>
         </Reveal>
       </div>
@@ -867,7 +733,7 @@ function Runbooks() {
     <section id="runbooks" className="sec scrolled-target">
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">07 /</span>
+          <span className="sec-num">08 /</span>
           <h2 className="sec-title"><span className="hash">#</span> runbooks</h2>
           <span className="sec-meta">on-call · {RUNBOOKS.length} documented</span>
         </div>
@@ -927,7 +793,7 @@ function Experience() {
     <section id="work" className="sec scrolled-target">
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">08 /</span>
+          <span className="sec-num">03 /</span>
           <h2 className="sec-title"><span className="hash">#</span> work</h2>
           <span className="sec-meta">
             <button className="commit-toggle" onClick={expandAll} style={{ marginRight: 6 }}>expand all</button>
@@ -960,6 +826,19 @@ function Experience() {
                     </button>
                   </>
                 )}
+              </div>
+            ))}
+          </div>
+        </Reveal>
+        <Reveal delay={80}>
+          <div className="cert-row">
+            {CERTS.map(c => (
+              <div className="cert" key={c.abbr}>
+                <span className="badge">{c.abbr}</span>
+                <div>
+                  <div className="cert-name">{c.name}</div>
+                  <div className="cert-meta">{c.meta}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -1112,7 +991,7 @@ function Projects() {
     <section id="projects" className="sec scrolled-target">
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">09 /</span>
+          <span className="sec-num">04 /</span>
           <h2 className="sec-title"><span className="hash">#</span> projects</h2>
           <span className="sec-meta">/services · {SERVICES.length} deployed</span>
         </div>
@@ -1177,7 +1056,7 @@ function Contact() {
     <section id="contact" className="sec scrolled-target">
       <div className="wrap">
         <div className="sec-head">
-          <span className="sec-num">10 /</span>
+          <span className="sec-num">09 /</span>
           <h2 className="sec-title"><span className="hash">#</span> contact</h2>
           <span className="sec-meta">curl /api/contact</span>
         </div>
@@ -1196,10 +1075,10 @@ function Contact() {
                   <span className="k">email</span><span className="v">{CANDIDATE_EMAIL}</span>
                 </a>
                 <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-                  <span className="k">github</span><span className="v">github.com/manuelanda</span>
+                  <span className="k">github</span><span className="v">{GITHUB_URL.replace(/^https?:\/\/(www\.)?/, '')}</span>
                 </a>
                 <a href={LINKEDIN_URL} target="_blank" rel="noreferrer">
-                  <span className="k">linkedin</span><span className="v">linkedin.com/in/manuelanda</span>
+                  <span className="k">linkedin</span><span className="v">{LINKEDIN_URL.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</span>
                 </a>
                 <a href={PDF_URL}>
                   <span className="k">resume</span><span className="v">manuel-anda-resume.pdf ↓</span>
@@ -1208,7 +1087,7 @@ function Contact() {
             </div>
             <div>
               {status === 'ok' ? (
-                <div className="cform-status ok">✓ Message sent — I'll reply within 24h.</div>
+                <div className="cform-status ok">✓ Message sent — thanks, talk soon.</div>
               ) : (
                 <form className="cform" onSubmit={handleSubmit} noValidate>
                   <div className="cform-row">
@@ -1385,16 +1264,14 @@ export default function App() {
     <>
       <Nav active={active} />
       <Hero onCmd={() => setCmd(true)} replay={replay} setReplay={setReplay} />
-      <StatusStrip metrics={metrics} />
       <ProductionSnapshot metrics={metrics} health={health} />
-      <ImpactStrip />
       <About />
-      <DeploymentTimeline deployments={deployments} />
-      <PlatformScorecard />
-      <Architecture />
-      <Runbooks />
       <Experience />
       <Projects />
+      <ImpactStrip />
+      <Architecture />
+      <DeploymentTimeline deployments={deployments} />
+      <Runbooks />
       <Contact />
       <Footer lastHash={lastHash} metrics={metrics} />
       <CmdK open={cmd} onClose={() => setCmd(false)} />

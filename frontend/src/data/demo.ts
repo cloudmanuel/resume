@@ -1,4 +1,4 @@
-import type { Metrics, Deployment, HealthCheck, UptimeDataPoint } from '../types'
+import type { Metrics, Deployment, HealthCheck } from '../types'
 
 export const demoMetrics: Metrics = {
   uptime_30d: 99.98,
@@ -107,15 +107,3 @@ export const demoHealthChecks: HealthCheck[] = [
     _demo: true,
   },
 ]
-
-// 30 days of synthetic uptime data for recharts
-export const demoUptimeData: UptimeDataPoint[] = Array.from({ length: 30 }, (_, i) => {
-  const date = new Date('2026-05-09')
-  date.setDate(date.getDate() - (29 - i))
-  // Mostly 100%, with one dip around day 20
-  const uptime = i === 20 ? 97.4 : i === 19 ? 98.1 : 100
-  return {
-    date: date.toISOString().slice(0, 10),
-    uptime,
-  }
-})
