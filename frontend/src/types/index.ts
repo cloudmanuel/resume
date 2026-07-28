@@ -37,8 +37,3 @@ export interface ContactFormData {
   role_type: string
   message: string
 }
-
-export interface UptimeDataPoint {
-  date: string
-  uptime: number
-}
