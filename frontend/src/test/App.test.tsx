@@ -32,10 +32,16 @@ const liveDeployments: Deployment[] = [
   { id: 'd-1', commit_hash: 'abc1234', branch: 'main', summary: 'feat: test deploy', status: 'success', deployed_at: new Date().toISOString(), duration_s: 0 },
 ]
 
+// Resolve on a short delay so tests exercise the demo-state → live-state swap
+// the way a real (or slow CI) environment does, instead of racing microtasks.
+function delayed<T>(value: T, ms = 25): () => Promise<T> {
+  return () => new Promise(resolve => setTimeout(() => resolve(value), ms))
+}
+
 function mockApi(metrics: Metrics = liveMetrics) {
-  vi.mocked(fetchMetrics).mockResolvedValue(metrics)
-  vi.mocked(fetchHealth).mockResolvedValue(liveHealth)
-  vi.mocked(fetchDeployments).mockResolvedValue(liveDeployments)
+  vi.mocked(fetchMetrics).mockImplementation(delayed(metrics))
+  vi.mocked(fetchHealth).mockImplementation(delayed(liveHealth))
+  vi.mocked(fetchDeployments).mockImplementation(delayed(liveDeployments))
 }
 
 describe('App', () => {
@@ -56,24 +62,30 @@ describe('App', () => {
     ])
   })
 
+  // The app renders demo metrics first and swaps to fetched values when the
+  // promise resolves, so value assertions must poll (findByText), not assert
+  // synchronously after locating the stat label.
   it('shows live infra cost from Cost Explorer when available', async () => {
     mockApi()
     render(<App />)
     const stat = (await screen.findByText('Infra cost')).closest('.stat')!
-    expect(within(stat as HTMLElement).getByText('$4.12')).toBeInTheDocument()
+    expect(await within(stat as HTMLElement).findByText('$4.12')).toBeInTheDocument()
   })
 
   it('shows a dash for infra cost while Cost Explorer has no data', async () => {
     mockApi({ ...liveMetrics, monthly_cost_usd: 0 })
     render(<App />)
     const stat = (await screen.findByText('Infra cost')).closest('.stat')!
-    expect(within(stat as HTMLElement).getByText('—')).toBeInTheDocument()
+    expect(await within(stat as HTMLElement).findByText('—')).toBeInTheDocument()
   })
 
   it('does not render fabricated telemetry or stale claims', async () => {
     mockApi()
     render(<App />)
     await screen.findByText('feat: test deploy')
+    // wait until live metrics have replaced the demo values ($2.41 is the
+    // demo cost, so asserting its absence is only valid after the swap)
+    await screen.findByText('$4.12')
     expect(screen.queryByText(/synced from \/docs\/about\.md/)).toBeNull()
     expect(screen.queryByText(/1 incident · 47 min/)).toBeNull()
     expect(screen.queryByText(/platform scorecard/)).toBeNull()
